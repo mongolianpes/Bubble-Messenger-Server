@@ -32,6 +32,12 @@ func (c *Client) Send(ctx context.Context, usersService users.UsersService, send
 	return nil
 }
 
+func (c *Client) SendFile(ctx context.Context, usersService users.UsersService, senderLogin, receiverLogin, fileName, storagePath string) error {
+	const designationSendFile = "p"
+	textMessage := fmt.Sprintf("%s\\%s\\%s", designationSendFile, fileName, storagePath)
+	return c.Send(ctx, usersService, senderLogin, receiverLogin, textMessage)
+}
+
 func (c *Client) Check(ctx context.Context, usersService users.UsersService, login string) ([]byte, error) {
 	newMessages := []byte{}
 

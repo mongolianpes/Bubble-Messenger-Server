@@ -53,8 +53,6 @@ Start on ports: 23099, 23098, 23097
 		mediumSizeDataService.POST("/setavatar", hand.SetAvatar)
 		mediumSizeDataService.POST("/getavatar", hand.GetAvatar)
 		mediumSizeDataService.POST("/sendfile", hand.SendFile)
-		mediumSizeDataService.POST("/getfile", hand.GetFile)
-		mediumSizeDataService.POST("/delfile", hand.DelFile)
 
 		if err := mediumSizeDataService.Start(":23098"); err != nil {
 			handlers.ErrEchoLog.Printf("Ошибка сервиса принятия файлов: %s", err)

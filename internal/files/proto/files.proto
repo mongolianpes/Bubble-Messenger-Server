@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package files;
+
+option go_package = ".";
+
+message SaveFileRequest {
+  bytes file = 1;
+}
+
+message SaveFileResponse {
+  string storage_path = 1;
+}
+
+service FilesService {
+  rpc SaveFile(SaveFileRequest) returns (SaveFileResponse);
+}

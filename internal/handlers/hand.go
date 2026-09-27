@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bubble/internal/files"
 	"bubble/internal/messenger"
 	"bubble/internal/users"
 )
@@ -8,6 +9,7 @@ import (
 type Handler struct {
 	UsersService     users.UsersService
 	MessengerService messenger.MessengerService
+	FilesService     files.FilesService
 }
 
 func NewHand() (*Handler, error) {
@@ -21,8 +23,14 @@ func NewHand() (*Handler, error) {
 		return nil, err
 	}
 
+	filesService, err := files.NewClient()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Handler{
 		UsersService:     usersService,
 		MessengerService: messengerService,
+		FilesService:     filesService,
 	}, nil
 }

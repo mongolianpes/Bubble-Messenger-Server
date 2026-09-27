@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"bubble/internal/db"
-	"bubble/internal/messenger"
 
 	"github.com/labstack/echo/v4"
 )
@@ -81,110 +80,18 @@ func (h *Handler) SendFile(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	if err := messenger.SendFile(req.Sender, req.Receiver, req.FileName, req.File); err != nil {
+	fileStoragePath, err := h.FilesService.SaveFile(c.Request().Context(), req.File)
+	if err != nil {
+		encryptResp, _ := crypto.StringEncrypt([]byte("Cant save file"), key)
+		return c.String(http.StatusInternalServerError, encryptResp)
+	}
+
+	if err := h.MessengerService.SendFile(c.Request().Context(), h.UsersService, req.Sender, req.Receiver, req.FileName, fileStoragePath); err != nil {
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	usersRequestsLog.Printf("Запрос sendfile. Sender: %s, Receiver: %s, FileSize: %v. DeviceID: %s", req.Sender, req.Receiver, len(req.File), req.Device)
-	return c.NoContent(http.StatusOK)
-}
-
-func (h *Handler) GetFile(c echo.Context) error {
-	device := c.FormValue("device")
-	login := c.FormValue("login")
-	password := c.FormValue("password")
-	fileName := c.FormValue("filename")
-	keyForServerDataBase := c.FormValue("forserver")
-	if device == "" || login == "" || password == "" || fileName == "" || keyForServerDataBase == "" {
-		CountInvalidRequests += 1
-		return c.String(http.StatusBadRequest, "Did not receive all server data")
-	}
-
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), device)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
-	}
-
-	login, err = crypto.StringDecrypt(login, key)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-	password, err = crypto.StringDecrypt(password, key)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	fileName, err = crypto.StringDecrypt(fileName, key)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	if !crypto.VerifyPassword(fmt.Sprintf(db.PathToUserPassword, login), password) {
-		errRequestsLog.Printf("Неверный пароль Login %s, Device %s", login, device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Incorrect login or password"), key)
-		return c.String(http.StatusBadRequest, encryptResp)
-	}
-
-	file, err := messenger.GetFile(login, fileName)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
-		return c.String(http.StatusBadRequest, encryptResp)
-	}
-
-	file, err = crypto.StringEncryptByte(file, key)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
-		return c.String(http.StatusBadRequest, encryptResp)
-	}
-
-	usersRequestsLog.Printf("Запрос: getfile. Login %s, FileName: %s, DeviceID: %s", login, fileName, device)
-	return c.JSON(http.StatusOK, file)
-}
-
-func (h *Handler) DelFile(c echo.Context) error {
-	device := c.FormValue("device")
-	login := c.FormValue("login")
-	password := c.FormValue("password")
-	fileName := c.FormValue("filename")
-	keyForServerDataBase := c.FormValue("forserver")
-	if device == "" || login == "" || password == "" || fileName == "" || keyForServerDataBase == "" {
-		CountInvalidRequests += 1
-		return c.String(http.StatusBadRequest, "Did not receive all server data")
-	}
-
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), device)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
-	}
-
-	login, err = crypto.StringDecrypt(login, key)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-	password, err = crypto.StringDecrypt(password, key)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	if !crypto.VerifyPassword(fmt.Sprintf(db.PathToUserPassword, login), password) {
-		errRequestsLog.Printf("Неверный пароль Login %s, Device %s", login, device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Incorrect login or password"), key)
-		return c.String(http.StatusBadRequest, encryptResp)
-	}
-
-	fileName, err = crypto.StringDecrypt(fileName, key)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	usersRequestsLog.Printf("Запрос delfile. Login: %s, FileName: %s, DeviceID: %s", login, fileName, device)
 	return c.NoContent(http.StatusOK)
 }
 

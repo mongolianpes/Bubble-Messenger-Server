@@ -22,7 +22,6 @@ const (
 	MessengerService_SendMessage_FullMethodName = "/messenger.MessengerService/SendMessage"
 	MessengerService_CheckChats_FullMethodName  = "/messenger.MessengerService/CheckChats"
 	MessengerService_DelMessage_FullMethodName  = "/messenger.MessengerService/DelMessage"
-	MessengerService_SendFile_FullMethodName    = "/messenger.MessengerService/SendFile"
 )
 
 // MessengerServiceClient is the client API for MessengerService service.
@@ -32,7 +31,6 @@ type MessengerServiceClient interface {
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
 	CheckChats(ctx context.Context, in *CheckChatsRequest, opts ...grpc.CallOption) (*CheckChatsResponse, error)
 	DelMessage(ctx context.Context, in *DelMessageRequest, opts ...grpc.CallOption) (*DelMessageResponse, error)
-	SendFile(ctx context.Context, in *SendFileRequest, opts ...grpc.CallOption) (*SendFileResponse, error)
 }
 
 type messengerServiceClient struct {
@@ -73,16 +71,6 @@ func (c *messengerServiceClient) DelMessage(ctx context.Context, in *DelMessageR
 	return out, nil
 }
 
-func (c *messengerServiceClient) SendFile(ctx context.Context, in *SendFileRequest, opts ...grpc.CallOption) (*SendFileResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SendFileResponse)
-	err := c.cc.Invoke(ctx, MessengerService_SendFile_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // MessengerServiceServer is the server API for MessengerService service.
 // All implementations must embed UnimplementedMessengerServiceServer
 // for forward compatibility.
@@ -90,7 +78,6 @@ type MessengerServiceServer interface {
 	SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
 	CheckChats(context.Context, *CheckChatsRequest) (*CheckChatsResponse, error)
 	DelMessage(context.Context, *DelMessageRequest) (*DelMessageResponse, error)
-	SendFile(context.Context, *SendFileRequest) (*SendFileResponse, error)
 	mustEmbedUnimplementedMessengerServiceServer()
 }
 
@@ -109,9 +96,6 @@ func (UnimplementedMessengerServiceServer) CheckChats(context.Context, *CheckCha
 }
 func (UnimplementedMessengerServiceServer) DelMessage(context.Context, *DelMessageRequest) (*DelMessageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DelMessage not implemented")
-}
-func (UnimplementedMessengerServiceServer) SendFile(context.Context, *SendFileRequest) (*SendFileResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SendFile not implemented")
 }
 func (UnimplementedMessengerServiceServer) mustEmbedUnimplementedMessengerServiceServer() {}
 func (UnimplementedMessengerServiceServer) testEmbeddedByValue()                          {}
@@ -188,24 +172,6 @@ func _MessengerService_DelMessage_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MessengerService_SendFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendFileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MessengerServiceServer).SendFile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MessengerService_SendFile_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MessengerServiceServer).SendFile(ctx, req.(*SendFileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // MessengerService_ServiceDesc is the grpc.ServiceDesc for MessengerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -224,10 +190,6 @@ var MessengerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DelMessage",
 			Handler:    _MessengerService_DelMessage_Handler,
-		},
-		{
-			MethodName: "SendFile",
-			Handler:    _MessengerService_SendFile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

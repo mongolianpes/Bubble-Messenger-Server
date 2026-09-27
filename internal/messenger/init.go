@@ -19,6 +19,7 @@ type Client struct {
 
 type MessengerService interface {
 	Send(ctx context.Context, usersService users.UsersService, senderLogin, receiverLogin, message string) error
+	SendFile(ctx context.Context, usersService users.UsersService, senderLogin, receiverLogin, fileName, storagePath string) error
 	Check(ctx context.Context, usersService users.UsersService, login string) ([]byte, error)
 	Del(ctx context.Context, usersService users.UsersService, login string) error
 	Close() error

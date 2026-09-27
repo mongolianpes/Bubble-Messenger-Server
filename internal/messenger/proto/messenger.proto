@@ -35,18 +35,8 @@ message DelMessageRequest {
 
 message DelMessageResponse {}
 
-message SendFileRequest {
-  int64 sender_id = 1;
-  int64 received_id = 2;
-  string file_name = 3;
-  string database_path = 4;
-}
-
-message SendFileResponse {}
-
 service MessengerService {
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
   rpc CheckChats(CheckChatsRequest) returns (CheckChatsResponse);
   rpc DelMessage(DelMessageRequest) returns (DelMessageResponse);
-  rpc SendFile(SendFileRequest) returns (SendFileResponse);
 }

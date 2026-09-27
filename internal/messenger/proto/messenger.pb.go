@@ -354,110 +354,6 @@ func (*DelMessageResponse) Descriptor() ([]byte, []int) {
 	return file_messenger_proto_rawDescGZIP(), []int{6}
 }
 
-type SendFileRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SenderId      int64                  `protobuf:"varint,1,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"`
-	ReceivedId    int64                  `protobuf:"varint,2,opt,name=received_id,json=receivedId,proto3" json:"received_id,omitempty"`
-	FileName      string                 `protobuf:"bytes,3,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
-	DatabasePath  string                 `protobuf:"bytes,4,opt,name=database_path,json=databasePath,proto3" json:"database_path,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendFileRequest) Reset() {
-	*x = SendFileRequest{}
-	mi := &file_messenger_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendFileRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendFileRequest) ProtoMessage() {}
-
-func (x *SendFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_messenger_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendFileRequest.ProtoReflect.Descriptor instead.
-func (*SendFileRequest) Descriptor() ([]byte, []int) {
-	return file_messenger_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *SendFileRequest) GetSenderId() int64 {
-	if x != nil {
-		return x.SenderId
-	}
-	return 0
-}
-
-func (x *SendFileRequest) GetReceivedId() int64 {
-	if x != nil {
-		return x.ReceivedId
-	}
-	return 0
-}
-
-func (x *SendFileRequest) GetFileName() string {
-	if x != nil {
-		return x.FileName
-	}
-	return ""
-}
-
-func (x *SendFileRequest) GetDatabasePath() string {
-	if x != nil {
-		return x.DatabasePath
-	}
-	return ""
-}
-
-type SendFileResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendFileResponse) Reset() {
-	*x = SendFileResponse{}
-	mi := &file_messenger_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendFileResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendFileResponse) ProtoMessage() {}
-
-func (x *SendFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_messenger_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendFileResponse.ProtoReflect.Descriptor instead.
-func (*SendFileResponse) Descriptor() ([]byte, []int) {
-	return file_messenger_proto_rawDescGZIP(), []int{8}
-}
-
 var File_messenger_proto protoreflect.FileDescriptor
 
 const file_messenger_proto_rawDesc = "" +
@@ -482,21 +378,13 @@ const file_messenger_proto_rawDesc = "" +
 	"\tcreate_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\bcreateAt\",\n" +
 	"\x11DelMessageRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\"\x14\n" +
-	"\x12DelMessageResponse\"\x91\x01\n" +
-	"\x0fSendFileRequest\x12\x1b\n" +
-	"\tsender_id\x18\x01 \x01(\x03R\bsenderId\x12\x1f\n" +
-	"\vreceived_id\x18\x02 \x01(\x03R\n" +
-	"receivedId\x12\x1b\n" +
-	"\tfile_name\x18\x03 \x01(\tR\bfileName\x12#\n" +
-	"\rdatabase_path\x18\x04 \x01(\tR\fdatabasePath\"\x12\n" +
-	"\x10SendFileResponse2\xbb\x02\n" +
+	"\x12DelMessageResponse2\xf6\x01\n" +
 	"\x10MessengerService\x12L\n" +
 	"\vSendMessage\x12\x1d.messenger.SendMessageRequest\x1a\x1e.messenger.SendMessageResponse\x12I\n" +
 	"\n" +
 	"CheckChats\x12\x1c.messenger.CheckChatsRequest\x1a\x1d.messenger.CheckChatsResponse\x12I\n" +
 	"\n" +
-	"DelMessage\x12\x1c.messenger.DelMessageRequest\x1a\x1d.messenger.DelMessageResponse\x12C\n" +
-	"\bSendFile\x12\x1a.messenger.SendFileRequest\x1a\x1b.messenger.SendFileResponseB\x03Z\x01.b\x06proto3"
+	"DelMessage\x12\x1c.messenger.DelMessageRequest\x1a\x1d.messenger.DelMessageResponseB\x03Z\x01.b\x06proto3"
 
 var (
 	file_messenger_proto_rawDescOnce sync.Once
@@ -510,7 +398,7 @@ func file_messenger_proto_rawDescGZIP() []byte {
 	return file_messenger_proto_rawDescData
 }
 
-var file_messenger_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_messenger_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_messenger_proto_goTypes = []any{
 	(*SendMessageRequest)(nil),    // 0: messenger.SendMessageRequest
 	(*SendMessageResponse)(nil),   // 1: messenger.SendMessageResponse
@@ -519,23 +407,19 @@ var file_messenger_proto_goTypes = []any{
 	(*NewMessage)(nil),            // 4: messenger.NewMessage
 	(*DelMessageRequest)(nil),     // 5: messenger.DelMessageRequest
 	(*DelMessageResponse)(nil),    // 6: messenger.DelMessageResponse
-	(*SendFileRequest)(nil),       // 7: messenger.SendFileRequest
-	(*SendFileResponse)(nil),      // 8: messenger.SendFileResponse
-	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
+	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
 }
 var file_messenger_proto_depIdxs = []int32{
 	4, // 0: messenger.CheckChatsResponse.messages:type_name -> messenger.NewMessage
-	9, // 1: messenger.NewMessage.create_at:type_name -> google.protobuf.Timestamp
+	7, // 1: messenger.NewMessage.create_at:type_name -> google.protobuf.Timestamp
 	0, // 2: messenger.MessengerService.SendMessage:input_type -> messenger.SendMessageRequest
 	2, // 3: messenger.MessengerService.CheckChats:input_type -> messenger.CheckChatsRequest
 	5, // 4: messenger.MessengerService.DelMessage:input_type -> messenger.DelMessageRequest
-	7, // 5: messenger.MessengerService.SendFile:input_type -> messenger.SendFileRequest
-	1, // 6: messenger.MessengerService.SendMessage:output_type -> messenger.SendMessageResponse
-	3, // 7: messenger.MessengerService.CheckChats:output_type -> messenger.CheckChatsResponse
-	6, // 8: messenger.MessengerService.DelMessage:output_type -> messenger.DelMessageResponse
-	8, // 9: messenger.MessengerService.SendFile:output_type -> messenger.SendFileResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
+	1, // 5: messenger.MessengerService.SendMessage:output_type -> messenger.SendMessageResponse
+	3, // 6: messenger.MessengerService.CheckChats:output_type -> messenger.CheckChatsResponse
+	6, // 7: messenger.MessengerService.DelMessage:output_type -> messenger.DelMessageResponse
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -552,7 +436,7 @@ func file_messenger_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_messenger_proto_rawDesc), len(file_messenger_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
