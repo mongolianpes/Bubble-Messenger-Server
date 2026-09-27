@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bubble/internal/crypto"
-	"bubble/internal/profile"
 	"fmt"
 	"net/http"
 
@@ -182,7 +181,13 @@ func (h *Handler) SetAvatar(c echo.Context) error {
 		return c.String(http.StatusBadRequest, encryptResp)
 	}
 
-	if err := profile.SetAvatar(req.Login, req.Avatar); err != nil {
+	storageAvatarPath, err := h.FilesService.SaveAvatar(c.Request().Context(), req.Avatar)
+	if err != nil {
+		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
+		return c.String(http.StatusInternalServerError, encryptResp)
+	}
+
+	if err := h.UsersService.SetAvatar(c.Request().Context(), req.Login, storageAvatarPath); err != nil {
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusBadRequest, encryptResp)
 	}
@@ -211,13 +216,13 @@ func (h *Handler) GetAvatar(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	avatar, err := profile.GetAvatar(loginForSearch)
+	avatar, err := h.UsersService.GetAvatar(c.Request().Context(), loginForSearch)
 	if err != nil {
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	avatar, err = crypto.StringEncryptByte(avatar, key)
+	avatar, err = crypto.StringEncrypt([]byte(avatar), key)
 	if err != nil {
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
