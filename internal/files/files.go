@@ -17,6 +17,8 @@ type Client struct {
 
 type FilesService interface {
 	SaveFile(ctx context.Context, file []byte) (string, error)
+	SaveAvatar(ctx context.Context, file []byte) (string, error)
+	DelFile(ctx context.Context, storagePath string) error
 }
 
 var usersServiceHost = os.Getenv("FILES_SERVICE_HOST_GRPC_PORT")
@@ -45,12 +47,36 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) SaveFile(ctx context.Context, file []byte) (string, error) {
-	resp, err := c.service.SaveFile(ctx, &pb.SaveFileRequest{
-		File: file,
+	resp, err := c.service.Save(ctx, &pb.SaveFileRequest{
+		File:        file,
+		SaveForever: false,
 	})
 	if err != nil {
 		return "", err
 	}
 
 	return resp.StoragePath, nil
+}
+
+func (c *Client) SaveAvatar(ctx context.Context, file []byte) (string, error) {
+	resp, err := c.service.Save(ctx, &pb.SaveFileRequest{
+		File:        file,
+		SaveForever: true,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return resp.StoragePath, nil
+}
+
+func (c *Client) DelFile(ctx context.Context, storagePath string) error {
+	_, err := c.service.Del(ctx, &pb.DelFileRequest{
+		StoragePath: storagePath,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

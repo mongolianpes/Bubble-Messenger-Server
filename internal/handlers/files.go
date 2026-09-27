@@ -95,6 +95,54 @@ func (h *Handler) SendFile(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+func (h *Handler) DelFile(c echo.Context) error {
+	device := c.FormValue("device")
+	login := c.FormValue("login")
+	password := c.FormValue("password")
+	fileName := c.FormValue("filename")
+	keyForServerDataBase := c.FormValue("forserver")
+	if device == "" || login == "" || password == "" || fileName == "" || keyForServerDataBase == "" {
+		CountInvalidRequests += 1
+		return c.String(http.StatusBadRequest, "Did not receive all server data")
+	}
+
+	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), device)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	login, err = crypto.StringDecrypt(login, key)
+	if err != nil {
+		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
+		return c.String(http.StatusInternalServerError, encryptResp)
+	}
+	password, err = crypto.StringDecrypt(password, key)
+	if err != nil {
+		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
+		return c.String(http.StatusInternalServerError, encryptResp)
+	}
+
+	if !crypto.VerifyPassword(fmt.Sprintf(db.PathToUserPassword, login), password) {
+		errRequestsLog.Printf("Неверный пароль Login %s, Device %s", login, device)
+		encryptResp, _ := crypto.StringEncrypt([]byte("Incorrect login or password"), key)
+		return c.String(http.StatusBadRequest, encryptResp)
+	}
+
+	fileName, err = crypto.StringDecrypt(fileName, key)
+	if err != nil {
+		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
+		return c.String(http.StatusInternalServerError, encryptResp)
+	}
+
+	if err := h.FilesService.DelFile(c.Request().Context(), fileName); err != nil {
+		encryptResp, _ := crypto.StringEncrypt([]byte("Cant del file"), key)
+		return c.String(http.StatusInternalServerError, encryptResp)
+	}
+
+	usersRequestsLog.Printf("Запрос delfile. Login: %s, FileName: %s, DeviceID: %s", login, fileName, device)
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *Handler) SetAvatar(c echo.Context) error {
 	var req Avatar
 	if err := c.Bind(&req); err != nil {

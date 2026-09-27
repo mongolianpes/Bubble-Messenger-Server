@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	FilesService_SaveFile_FullMethodName = "/files.FilesService/SaveFile"
+	FilesService_Save_FullMethodName = "/files.FilesService/Save"
+	FilesService_Del_FullMethodName  = "/files.FilesService/Del"
 )
 
 // FilesServiceClient is the client API for FilesService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FilesServiceClient interface {
-	SaveFile(ctx context.Context, in *SaveFileRequest, opts ...grpc.CallOption) (*SaveFileResponse, error)
+	Save(ctx context.Context, in *SaveFileRequest, opts ...grpc.CallOption) (*SaveFileResponse, error)
+	Del(ctx context.Context, in *DelFileRequest, opts ...grpc.CallOption) (*DelFileResponse, error)
 }
 
 type filesServiceClient struct {
@@ -37,10 +39,20 @@ func NewFilesServiceClient(cc grpc.ClientConnInterface) FilesServiceClient {
 	return &filesServiceClient{cc}
 }
 
-func (c *filesServiceClient) SaveFile(ctx context.Context, in *SaveFileRequest, opts ...grpc.CallOption) (*SaveFileResponse, error) {
+func (c *filesServiceClient) Save(ctx context.Context, in *SaveFileRequest, opts ...grpc.CallOption) (*SaveFileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SaveFileResponse)
-	err := c.cc.Invoke(ctx, FilesService_SaveFile_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, FilesService_Save_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *filesServiceClient) Del(ctx context.Context, in *DelFileRequest, opts ...grpc.CallOption) (*DelFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DelFileResponse)
+	err := c.cc.Invoke(ctx, FilesService_Del_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +63,8 @@ func (c *filesServiceClient) SaveFile(ctx context.Context, in *SaveFileRequest, 
 // All implementations must embed UnimplementedFilesServiceServer
 // for forward compatibility.
 type FilesServiceServer interface {
-	SaveFile(context.Context, *SaveFileRequest) (*SaveFileResponse, error)
+	Save(context.Context, *SaveFileRequest) (*SaveFileResponse, error)
+	Del(context.Context, *DelFileRequest) (*DelFileResponse, error)
 	mustEmbedUnimplementedFilesServiceServer()
 }
 
@@ -62,8 +75,11 @@ type FilesServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedFilesServiceServer struct{}
 
-func (UnimplementedFilesServiceServer) SaveFile(context.Context, *SaveFileRequest) (*SaveFileResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SaveFile not implemented")
+func (UnimplementedFilesServiceServer) Save(context.Context, *SaveFileRequest) (*SaveFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Save not implemented")
+}
+func (UnimplementedFilesServiceServer) Del(context.Context, *DelFileRequest) (*DelFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Del not implemented")
 }
 func (UnimplementedFilesServiceServer) mustEmbedUnimplementedFilesServiceServer() {}
 func (UnimplementedFilesServiceServer) testEmbeddedByValue()                      {}
@@ -86,20 +102,38 @@ func RegisterFilesServiceServer(s grpc.ServiceRegistrar, srv FilesServiceServer)
 	s.RegisterService(&FilesService_ServiceDesc, srv)
 }
 
-func _FilesService_SaveFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FilesService_Save_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SaveFileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FilesServiceServer).SaveFile(ctx, in)
+		return srv.(FilesServiceServer).Save(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FilesService_SaveFile_FullMethodName,
+		FullMethod: FilesService_Save_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FilesServiceServer).SaveFile(ctx, req.(*SaveFileRequest))
+		return srv.(FilesServiceServer).Save(ctx, req.(*SaveFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FilesService_Del_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DelFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FilesServiceServer).Del(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FilesService_Del_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FilesServiceServer).Del(ctx, req.(*DelFileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -112,8 +146,12 @@ var FilesService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*FilesServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SaveFile",
-			Handler:    _FilesService_SaveFile_Handler,
+			MethodName: "Save",
+			Handler:    _FilesService_Save_Handler,
+		},
+		{
+			MethodName: "Del",
+			Handler:    _FilesService_Del_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

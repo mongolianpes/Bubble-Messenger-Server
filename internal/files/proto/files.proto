@@ -6,12 +6,20 @@ option go_package = ".";
 
 message SaveFileRequest {
   bytes file = 1;
+  bool save_forever = 2;
 }
 
 message SaveFileResponse {
   string storage_path = 1;
 }
 
+message DelFileRequest {
+  string storage_path = 1;
+}
+
+message DelFileResponse {}
+
 service FilesService {
-  rpc SaveFile(SaveFileRequest) returns (SaveFileResponse);
+  rpc Save(SaveFileRequest) returns (SaveFileResponse);
+  rpc Del(DelFileRequest) returns (DelFileResponse);
 }
