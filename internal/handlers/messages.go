@@ -2,14 +2,12 @@ package handlers
 
 import (
 	"crypto/rand"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	"bubble/internal/crypto"
-	"bubble/internal/db"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -43,22 +41,16 @@ func (h *Handler) SendMessage(c echo.Context) error {
 	device := c.FormValue("device")
 	keyForServerDataBase := c.FormValue("forserver")
 	if senderLogin == "" || senderPassword == "" || receiverLogin == "" || message == "" || device == "" || keyForServerDataBase == "" {
-		CountInvalidRequests += 1
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), device)
+	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), senderLogin, senderPassword, device)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
 	senderLogin, err = crypto.StringDecrypt(senderLogin, key)
 	if err != nil || senderLogin == "" {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-	senderPassword, err = crypto.StringDecrypt(senderPassword, key)
-	if err != nil {
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
@@ -71,12 +63,6 @@ func (h *Handler) SendMessage(c echo.Context) error {
 	if err != nil {
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	if !crypto.VerifyPassword(fmt.Sprintf(db.PathToUserPassword, senderLogin), senderPassword) {
-		errRequestsLog.Printf("Неверный пароль Login %s, Device %s", senderLogin, device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Incorrect login or password"), key)
-		return c.String(http.StatusBadRequest, encryptResp)
 	}
 
 	if message == identificatorForInitAudioDialog {
@@ -116,7 +102,6 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		response = "Audio dialog stop"
 	}
 
-	usersRequestsLog.Printf("Запрос sendmessage. SenderLogin %s, ReceiverLogin %s. DeviceID: %s", senderLogin, receiverLogin, device)
 	if response != "" {
 		responseEncrypted, _ := crypto.StringEncrypt([]byte(response), key)
 		return c.String(http.StatusOK, responseEncrypted)
@@ -131,11 +116,10 @@ func (h *Handler) CheckMessage(c echo.Context) error {
 	device := c.FormValue("device")
 	keyForServerDataBase := c.FormValue("forserver")
 	if device == "" || login == "" || password == "" || keyForServerDataBase == "" {
-		CountInvalidRequests += 1
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), device)
+	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -144,17 +128,6 @@ func (h *Handler) CheckMessage(c echo.Context) error {
 	if err != nil {
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-	password, err = crypto.StringDecrypt(password, key)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	if !crypto.VerifyPassword(fmt.Sprintf(db.PathToUserPassword, login), password) {
-		errRequestsLog.Printf("Неверный пароль Login %s, Device %s", login, device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Incorrect login or password"), key)
-		return c.String(http.StatusBadRequest, encryptResp)
 	}
 
 	newMessages, err := h.MessengerService.Check(c.Request().Context(), h.UsersService, login)
@@ -168,7 +141,6 @@ func (h *Handler) CheckMessage(c echo.Context) error {
 		Messages: messagesEncryptedByte,
 	}
 
-	usersRequestsLog.Printf("Запрос checkmessages. Login: %s. UserID: %s", login, device)
 	return c.JSON(http.StatusOK, request)
 }
 
@@ -178,11 +150,10 @@ func (h *Handler) DelMessages(c echo.Context) error {
 	device := c.FormValue("device")
 	keyForServerDataBase := c.FormValue("forserver")
 	if device == "" || login == "" || password == "" || keyForServerDataBase == "" {
-		CountInvalidRequests += 1
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), device)
+	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -191,17 +162,6 @@ func (h *Handler) DelMessages(c echo.Context) error {
 	if err != nil {
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-	password, err = crypto.StringDecrypt(password, key)
-	if err != nil {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	if !crypto.VerifyPassword(fmt.Sprintf(db.PathToUserPassword, login), password) {
-		errRequestsLog.Printf("Неверный пароль Login %s, Device %s", login, device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Incorrect login or password"), key)
-		return c.String(http.StatusBadRequest, encryptResp)
 	}
 
 	if err := h.MessengerService.Del(c.Request().Context(), h.UsersService, login); err != nil {

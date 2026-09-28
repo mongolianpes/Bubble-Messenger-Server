@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"bubble/internal/handlers"
 
@@ -24,12 +23,11 @@ Start on ports: 23099, 23098, 23097
 		panic(err)
 	}
 
-	handlers.OpenLogFiles()
 	go handlers.CheckLastUsedTimeInAudioDialog()
 
 	go func() {
 		mainService := echo.New()
-		mainService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
+		// mainService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
 		mainService.Use(middleware.Recover())
 		mainService.HideBanner = true
 		mainService.POST("/exchangekey", hand.TLS)
@@ -40,13 +38,13 @@ Start on ports: 23099, 23098, 23097
 		mainService.POST("/checkmessage", hand.CheckMessage)
 
 		if err := mainService.Start(":23099"); err != nil {
-			handlers.ErrEchoLog.Printf("Ошибка основного сервиса: %s", err)
+			// handlers.ErrEchoLog.Printf("Ошибка основного сервиса: %s", err)
 		}
 	}()
 
 	go func() {
 		mediumSizeDataService := echo.New()
-		mediumSizeDataService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
+		// mediumSizeDataService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
 		mediumSizeDataService.Use(middleware.Recover())
 		mediumSizeDataService.HideBanner = true
 		mediumSizeDataService.POST("/delmessages", hand.DelMessages)
@@ -55,27 +53,19 @@ Start on ports: 23099, 23098, 23097
 		mediumSizeDataService.POST("/sendfile", hand.SendFile)
 
 		if err := mediumSizeDataService.Start(":23098"); err != nil {
-			handlers.ErrEchoLog.Printf("Ошибка сервиса принятия файлов: %s", err)
+			// handlers.ErrEchoLog.Printf("Ошибка сервиса принятия файлов: %s", err)
 		}
 	}()
 
 	go func() {
 		audioDialogService := echo.New()
-		audioDialogService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
+		// audioDialogService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
 		audioDialogService.Use(middleware.Recover())
 		audioDialogService.HideBanner = true
 		audioDialogService.POST("/audiodialog", handlers.AudioDialogRequest)
 
 		if err := audioDialogService.Start(":23097"); err != nil {
-			handlers.ErrEchoLog.Printf("Ошибка сервиса аудио диалога: %s", err)
+			// handlers.ErrEchoLog.Printf("Ошибка сервиса аудио диалога: %s", err)
 		}
 	}()
-
-	for {
-		time.Sleep(time.Hour)
-
-		if handlers.CountInvalidRequests > 0 {
-			handlers.ServerRoutineLog.Printf("За последний час невалидных запросов: %v", handlers.CountInvalidRequests)
-		}
-	}
 }

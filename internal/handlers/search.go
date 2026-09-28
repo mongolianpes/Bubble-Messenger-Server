@@ -12,12 +12,13 @@ func (h *Handler) SearchUser(c echo.Context) error {
 	device := c.FormValue("device")
 	loginForSearch := c.FormValue("loginforsearch")
 	keyForServerDataBase := c.FormValue("forserver")
-	if device == "" || loginForSearch == "" || keyForServerDataBase == "" {
-		CountInvalidRequests += 1
+	login := c.FormValue("login")
+	password := c.FormValue("password")
+	if device == "" || loginForSearch == "" || keyForServerDataBase == "" || login == "" || password == "" {
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), device)
+	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -41,13 +42,11 @@ func (h *Handler) SearchUser(c echo.Context) error {
 
 	b, err := json.Marshal(findUsers)
 	if err != nil {
-		errRequestsLog.Printf("searchuse: Не удалось преобразовать в json найденных пользователей Device %s", device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Can not marshal find users"), key)
 		return c.String(http.StatusBadRequest, encryptResp)
 	}
 
 	b, _ = crypto.StringEncryptByte(b, key)
 
-	usersRequestsLog.Printf("Запрос serchuser. LoginForSearch %s. DeviceID: %s", loginForSearch, device)
 	return c.Blob(http.StatusOK, "application/octet-stream", b)
 }

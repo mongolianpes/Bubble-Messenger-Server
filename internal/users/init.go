@@ -21,7 +21,7 @@ type UsersService interface {
 	TLS(ctx context.Context, isRegistring bool, clientPublicKey, id string) (string, error)
 	Register(ctx context.Context, login, name, password, device string) (string, error)
 	Auth(ctx context.Context, login, password, device string) (string, string, error)
-	GetAuthInfo(ctx context.Context, device string) (string, int, error)
+	GetAuthInfo(ctx context.Context, login, password, device string) (string, int, error)
 	Search(ctx context.Context, login string) ([]models.FindUser, error)
 	GetInfoByLogin(ctx context.Context, login string) (models.FindUser, error)
 	GetInfoByID(ctx context.Context, id int) (models.FindUser, error)

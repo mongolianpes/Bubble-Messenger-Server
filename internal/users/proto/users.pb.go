@@ -475,8 +475,9 @@ func (x *AuthRequest) GetDevice() string {
 
 type AuthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	UserName      string                 `protobuf:"bytes,1,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
 	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	UserId        int64                  `protobuf:"varint,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -511,9 +512,9 @@ func (*AuthResponse) Descriptor() ([]byte, []int) {
 	return file_users_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *AuthResponse) GetName() string {
+func (x *AuthResponse) GetUserName() string {
 	if x != nil {
-		return x.Name
+		return x.UserName
 	}
 	return ""
 }
@@ -525,9 +526,18 @@ func (x *AuthResponse) GetKey() string {
 	return ""
 }
 
+func (x *AuthResponse) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
 type GetAuthInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Device        string                 `protobuf:"bytes,1,opt,name=device,proto3" json:"device,omitempty"`
+	Login         string                 `protobuf:"bytes,2,opt,name=login,proto3" json:"login,omitempty"`
+	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -565,6 +575,20 @@ func (*GetAuthInfoRequest) Descriptor() ([]byte, []int) {
 func (x *GetAuthInfoRequest) GetDevice() string {
 	if x != nil {
 		return x.Device
+	}
+	return ""
+}
+
+func (x *GetAuthInfoRequest) GetLogin() string {
+	if x != nil {
+		return x.Login
+	}
+	return ""
+}
+
+func (x *GetAuthInfoRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
 	}
 	return ""
 }
@@ -895,12 +919,15 @@ const file_users_proto_rawDesc = "" +
 	"\vAuthRequest\x12\x14\n" +
 	"\x05login\x18\x01 \x01(\tR\x05login\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x16\n" +
-	"\x06device\x18\x03 \x01(\tR\x06device\"4\n" +
-	"\fAuthResponse\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
-	"\x03key\x18\x02 \x01(\tR\x03key\",\n" +
+	"\x06device\x18\x03 \x01(\tR\x06device\"V\n" +
+	"\fAuthResponse\x12\x1b\n" +
+	"\tuser_name\x18\x01 \x01(\tR\buserName\x12\x10\n" +
+	"\x03key\x18\x02 \x01(\tR\x03key\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\x03R\x06userId\"^\n" +
 	"\x12GetAuthInfoRequest\x12\x16\n" +
-	"\x06device\x18\x01 \x01(\tR\x06device\"@\n" +
+	"\x06device\x18\x01 \x01(\tR\x06device\x12\x14\n" +
+	"\x05login\x18\x02 \x01(\tR\x05login\x12\x1a\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\"@\n" +
 	"\x13GetAuthInfoResponse\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\x03R\x06userId\"%\n" +

@@ -49,12 +49,14 @@ func (c *Client) Auth(ctx context.Context, login, password, device string) (stri
 		return "", "", err
 	}
 
-	return resp.Name, resp.Key, nil
+	return resp.UserName, resp.Key, nil
 }
 
-func (c *Client) GetAuthInfo(ctx context.Context, device string) (string, int, error) {
+func (c *Client) GetAuthInfo(ctx context.Context, login, password, device string) (string, int, error) {
 	resp, err := c.service.GetAuthInfo(ctx, &pb.GetAuthInfoRequest{
-		Device: device,
+		Device:   device,
+		Login:    login,
+		Password: password,
 	})
 	if err != nil {
 		return "", 0, err

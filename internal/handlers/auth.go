@@ -21,25 +21,22 @@ type KeyExchangeRequest struct {
 func (h *Handler) TLS(c echo.Context) error {
 	var req KeyExchangeRequest
 	if err := c.Bind(&req); err != nil {
-		CountInvalidRequests += 1
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
 	}
 
 	if !isValidStr(req.ID, true) {
-		CountInvalidRequests += 1
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid error"})
 	}
 
 	serverPublicKey, err := h.UsersService.TLS(c.Request().Context(), req.IsRegistring, req.ClientPublicKey, req.ID)
 	if err != nil {
-		errRequestsLog.Printf("exchangekey: %s", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
 	response := KeyExchangeResponse{
 		ServerPublicKey: serverPublicKey,
 	}
 
-	usersRequestsLog.Printf("Получен запрос на обмен ключами. ClientPublicKey: %s, IsRegistring: %v. DeviceID: %s", req.ClientPublicKey, req.IsRegistring, req.ID)
 	return c.JSON(http.StatusOK, response)
 }
 
@@ -50,7 +47,6 @@ func (h *Handler) Reg(c echo.Context) error {
 	device := c.FormValue("device")
 	keyForServerDataBase := c.FormValue("forserver")
 	if login == "" || name == "" || password == "" || device == "" || keyForServerDataBase == "" {
-		CountInvalidRequests += 1
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
@@ -66,7 +62,6 @@ func (h *Handler) Reg(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, resp)
 	}
 
-	usersRequestsLog.Printf("Запрос: reg. Login: %s, UserName: %s. DeviceID: %s", login, name, device)
 	return c.NoContent(http.StatusOK)
 }
 
@@ -76,7 +71,6 @@ func (h *Handler) Auth(c echo.Context) error {
 	device := c.FormValue("device")
 	keyForServerDataBase := c.FormValue("forserver")
 	if login == "" || password == "" || device == "" || keyForServerDataBase == "" {
-		CountInvalidRequests += 1
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
@@ -93,6 +87,5 @@ func (h *Handler) Auth(c echo.Context) error {
 	}
 
 	resp, _ := crypto.StringEncrypt([]byte(userName), key)
-	usersRequestsLog.Printf("Запрос: auth. Login %s, DeviceID: %s", login, device)
 	return c.String(http.StatusOK, resp)
 }
