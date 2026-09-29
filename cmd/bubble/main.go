@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"bubble/internal/handlers"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
+
+const timeToProcessRequest = 10 * time.Second
 
 func main() {
 	fmt.Printf(`
@@ -27,6 +30,7 @@ Start on ports: 23099, 23098, 23097
 		mainService := echo.New()
 		// mainService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
 		mainService.Use(middleware.Recover())
+		mainService.Use(middleware.ContextTimeout(timeToProcessRequest))
 		mainService.HideBanner = true
 		mainService.POST("/exchangekey", hand.TLS)
 		mainService.POST("/reg", hand.Reg)
@@ -44,6 +48,7 @@ Start on ports: 23099, 23098, 23097
 		mediumSizeDataService := echo.New()
 		// mediumSizeDataService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
 		mediumSizeDataService.Use(middleware.Recover())
+		mediumSizeDataService.Use(middleware.ContextTimeout(timeToProcessRequest))
 		mediumSizeDataService.HideBanner = true
 		mediumSizeDataService.POST("/delmessages", hand.DelMessages)
 		mediumSizeDataService.POST("/setavatar", hand.SetAvatar)
