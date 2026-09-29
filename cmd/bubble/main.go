@@ -23,8 +23,6 @@ Start on ports: 23099, 23098, 23097
 		panic(err)
 	}
 
-	go handlers.CheckLastUsedTimeInAudioDialog()
-
 	go func() {
 		mainService := echo.New()
 		// mainService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
@@ -54,18 +52,6 @@ Start on ports: 23099, 23098, 23097
 
 		if err := mediumSizeDataService.Start(":23098"); err != nil {
 			// handlers.ErrEchoLog.Printf("Ошибка сервиса принятия файлов: %s", err)
-		}
-	}()
-
-	go func() {
-		audioDialogService := echo.New()
-		// audioDialogService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
-		audioDialogService.Use(middleware.Recover())
-		audioDialogService.HideBanner = true
-		audioDialogService.POST("/audiodialog", handlers.AudioDialogRequest)
-
-		if err := audioDialogService.Start(":23097"); err != nil {
-			// handlers.ErrEchoLog.Printf("Ошибка сервиса аудио диалога: %s", err)
 		}
 	}()
 }

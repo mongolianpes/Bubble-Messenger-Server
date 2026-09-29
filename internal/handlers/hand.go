@@ -1,15 +1,17 @@
 package handlers
 
 import (
+	"bubble/internal/audiodialog"
 	"bubble/internal/files"
 	"bubble/internal/messenger"
 	"bubble/internal/users"
 )
 
 type Handler struct {
-	UsersService     users.UsersService
-	MessengerService messenger.MessengerService
-	FilesService     files.FilesService
+	UsersService       users.UsersService
+	MessengerService   messenger.MessengerService
+	FilesService       files.FilesService
+	AudioDialogService audiodialog.AudioDialogService
 }
 
 func NewHand() (*Handler, error) {
@@ -28,9 +30,15 @@ func NewHand() (*Handler, error) {
 		return nil, err
 	}
 
+	audioDialogService, err := audiodialog.NewClient()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Handler{
-		UsersService:     usersService,
-		MessengerService: messengerService,
-		FilesService:     filesService,
+		UsersService:       usersService,
+		MessengerService:   messengerService,
+		FilesService:       filesService,
+		AudioDialogService: audioDialogService,
 	}, nil
 }

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package audiodialog;
+
+option go_package = ".";
+
+message CreateAudioDialogRequest {}
+
+message CreateAudioDialogResponse {
+  string dialog_id = 1;
+  string sender_id = 2;
+  string receiver_id = 3;
+}
+
+message DeleteAudioDialogRequest {
+  string dialog_id = 1;
+}
+
+message DeleteAudioDialogResponse {}
+
+service AudioDialogService {
+  rpc CreateAudioDialog(CreateAudioDialogRequest) returns (CreateAudioDialogResponse) {}
+  rpc DeleteAudioDialog(DeleteAudioDialogRequest) returns (DeleteAudioDialogResponse) {}
+}

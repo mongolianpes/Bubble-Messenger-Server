@@ -1,15 +1,12 @@
 package handlers
 
 import (
-	"crypto/rand"
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"bubble/internal/crypto"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -18,12 +15,6 @@ const (
 	identificatorForStopAudioDialog           = "as\\"
 	identificatorForSecondStepInitAudioDialog = "ai\\"
 )
-
-type Dialog struct {
-	Users        map[string][]MessageAudioDialog
-	LastUsedTime int64
-	Mu           sync.RWMutex
-}
 
 type RequestCheckMessages struct {
 	Gzip     bool
@@ -66,39 +57,17 @@ func (h *Handler) SendMessage(c echo.Context) error {
 	}
 
 	if message == identificatorForInitAudioDialog {
-		var id string
-		for {
-			id = uuid.New().String()
-
-			audioDialogsMu.RLock()
-			_, exists := audioDialogs[id]
-			audioDialogsMu.RUnlock()
-
-			if !exists {
-				break
-			}
+		dialogID, senderID, receiverID, err := h.AudioDialogService.CreateAudioDialog(c.Request().Context())
+		if err != nil {
+			encryptResp, _ := crypto.StringEncrypt([]byte("Create dialog error"), key)
+			return c.String(http.StatusInternalServerError, encryptResp)
 		}
 
-		senderUser := rand.Text()
-		receiverUser := rand.Text()
-
-		message = identificatorForSecondStepInitAudioDialog + id + "\\" + receiverUser
-		response = id + "\\" + senderUser
-
-		dialog := &Dialog{
-			Users: map[string][]MessageAudioDialog{
-				senderUser:   make([]MessageAudioDialog, 0, 4),
-				receiverUser: make([]MessageAudioDialog, 0, 4),
-			},
-			LastUsedTime: time.Now().UnixNano(),
-		}
-
-		audioDialogsMu.Lock()
-		audioDialogs[id] = dialog
-		audioDialogsMu.Unlock()
+		message = identificatorForSecondStepInitAudioDialog + dialogID + "\\" + receiverID
+		response = dialogID + "\\" + senderID
 	} else if strings.HasPrefix(message, identificatorForStopAudioDialog) {
 		dialogUUID := strings.Split(message, "\\")[1]
-		delete(audioDialogs, dialogUUID)
+		h.AudioDialogService.DeleteAudioDialog(c.Request().Context(), dialogUUID)
 		response = "Audio dialog stop"
 	}
 
