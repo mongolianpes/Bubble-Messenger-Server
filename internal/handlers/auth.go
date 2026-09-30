@@ -24,10 +24,6 @@ func (h *Handler) TLS(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
 	}
 
-	if !isValidStr(req.ID, true) {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid error"})
-	}
-
 	serverPublicKey, err := h.UsersService.TLS(c.Request().Context(), req.IsRegistring, req.ClientPublicKey, req.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})

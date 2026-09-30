@@ -29,11 +29,6 @@ func (h *Handler) SearchUser(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	if !isValidStr(loginForSearch, false) {
-		encryptResp, _ := crypto.StringEncrypt([]byte("Login for search is not valid"), key)
-		return c.String(http.StatusBadRequest, encryptResp)
-	}
-
 	findUsers, err := h.UsersService.Search(c.Request().Context(), loginForSearch)
 	if err != nil {
 		encryptResp, _ := crypto.StringEncrypt([]byte("Can not find users"), key)
