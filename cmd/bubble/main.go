@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"bubble/internal/handlers"
+	"bubble/internal/ipblocker"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -28,7 +30,7 @@ Start on ports: 23099, 23098, 23097
 
 	go func() {
 		mainService := echo.New()
-		// mainService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
+		mainService.Use(IPBlockMiddleware(hand.Blocker))
 		mainService.Use(middleware.Recover())
 		mainService.Use(middleware.ContextTimeout(timeToProcessRequest))
 		mainService.HideBanner = true
@@ -40,13 +42,13 @@ Start on ports: 23099, 23098, 23097
 		mainService.POST("/checkmessage", hand.CheckMessage)
 
 		if err := mainService.Start(":23099"); err != nil {
-			// handlers.ErrEchoLog.Printf("Ошибка основного сервиса: %s", err)
+			mainService.Logger.Error("Start main Service: %s", err)
 		}
 	}()
 
 	go func() {
 		mediumSizeDataService := echo.New()
-		// mediumSizeDataService.Logger.SetOutput(handlers.ErrEchoLog.Writer())
+		mediumSizeDataService.Use(IPBlockMiddleware(hand.Blocker))
 		mediumSizeDataService.Use(middleware.Recover())
 		mediumSizeDataService.Use(middleware.ContextTimeout(timeToProcessRequest))
 		mediumSizeDataService.HideBanner = true
@@ -56,7 +58,19 @@ Start on ports: 23099, 23098, 23097
 		mediumSizeDataService.POST("/sendfile", hand.SendFile)
 
 		if err := mediumSizeDataService.Start(":23098"); err != nil {
-			// handlers.ErrEchoLog.Printf("Ошибка сервиса принятия файлов: %s", err)
+			mediumSizeDataService.Logger.Errorf("Start medium size Data Service: %s", err)
 		}
 	}()
+}
+
+func IPBlockMiddleware(blocker ipblocker.Blocker) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			ip := c.RealIP()
+			if blocker.IsBlocked(ip) {
+				return c.String(http.StatusForbidden, "Your IP is temporarily blocked")
+			}
+			return next(c)
+		}
+	}
 }

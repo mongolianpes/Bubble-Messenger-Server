@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log/slog"
 	"net/http"
 
 	"bubble/internal/crypto"
@@ -22,11 +21,13 @@ type KeyExchangeRequest struct {
 func (h *Handler) TLS(c echo.Context) error {
 	var req KeyExchangeRequest
 	if err := c.Bind(&req); err != nil {
+		h.Blocker.RegisterStrike(c.RealIP())
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
 	}
 
 	serverPublicKey, err := h.UsersService.TLS(c.Request().Context(), req.IsRegistring, req.ClientPublicKey, req.ID)
 	if err != nil {
+		h.Blocker.RegisterStrike(c.RealIP())
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
@@ -44,6 +45,7 @@ func (h *Handler) Reg(c echo.Context) error {
 	device := c.FormValue("device")
 	keyForServerDataBase := c.FormValue("forserver")
 	if login == "" || name == "" || password == "" || device == "" || keyForServerDataBase == "" {
+		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
@@ -56,13 +58,12 @@ func (h *Handler) Reg(c echo.Context) error {
 			resp = err.Error()
 		}
 
-		slog.WarnContext(c.Request().Context(), "Register error", "login", login, "deviceID", device, "error", err, "ip", c.RealIP())
+		c.Logger().Warnf("Register error. Login %s, deviceID %s, IP %s, ERR: %s", login, device, c.RealIP(), err)
 
 		return c.String(http.StatusInternalServerError, resp)
 	}
 
-	slog.InfoContext(c.Request().Context(), "Success registraion", "login", login, "deviceID", device, "ip", c.RealIP())
-
+	c.Logger().Infof("Success registraion %s. DeviceID %s, IP %s", login, device, c.RealIP())
 	return c.NoContent(http.StatusOK)
 }
 
@@ -72,6 +73,7 @@ func (h *Handler) Auth(c echo.Context) error {
 	device := c.FormValue("device")
 	keyForServerDataBase := c.FormValue("forserver")
 	if login == "" || password == "" || device == "" || keyForServerDataBase == "" {
+		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
@@ -84,12 +86,12 @@ func (h *Handler) Auth(c echo.Context) error {
 			resp = err.Error()
 		}
 
-		slog.WarnContext(c.Request().Context(), "Auth error", "login", login, "deviceID", device, "error", err, "ip", c.RealIP())
+		c.Logger().Warnf("Auth error. Login %s, deviceID %s, IP %s, ERR: %s", login, device, c.RealIP(), err)
 
 		return c.String(http.StatusInternalServerError, resp)
 	}
 
-	slog.InfoContext(c.Request().Context(), "Success auth", "login", login, "deviceID", device, "ip", c.RealIP())
+	c.Logger().Infof("Success auth %s. DeviceID %s, IP %s", login, device, c.RealIP())
 
 	resp, _ := crypto.StringEncrypt([]byte(userName), key)
 	return c.String(http.StatusOK, resp)

@@ -3,8 +3,10 @@ package handlers
 import (
 	"bubble/internal/audiodialog"
 	"bubble/internal/files"
+	"bubble/internal/ipblocker"
 	"bubble/internal/messenger"
 	"bubble/internal/users"
+	"time"
 )
 
 type Handler struct {
@@ -12,6 +14,7 @@ type Handler struct {
 	MessengerService   messenger.MessengerService
 	FilesService       files.FilesService
 	AudioDialogService audiodialog.AudioDialogService
+	Blocker            ipblocker.Blocker
 }
 
 func NewHand() (*Handler, error) {
@@ -35,10 +38,13 @@ func NewHand() (*Handler, error) {
 		return nil, err
 	}
 
+	blocker := ipblocker.New(3, 30*time.Minute)
+
 	return &Handler{
 		UsersService:       usersService,
 		MessengerService:   messengerService,
 		FilesService:       filesService,
 		AudioDialogService: audioDialogService,
+		Blocker:            blocker,
 	}, nil
 }
