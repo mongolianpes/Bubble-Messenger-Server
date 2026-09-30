@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 
 	"bubble/internal/crypto"
@@ -55,8 +56,12 @@ func (h *Handler) Reg(c echo.Context) error {
 			resp = err.Error()
 		}
 
+		slog.WarnContext(c.Request().Context(), "Register error", "login", login, "deviceID", device, "error", err, "ip", c.RealIP())
+
 		return c.String(http.StatusInternalServerError, resp)
 	}
+
+	slog.InfoContext(c.Request().Context(), "Success registraion", "login", login, "deviceID", device, "ip", c.RealIP())
 
 	return c.NoContent(http.StatusOK)
 }
@@ -79,8 +84,12 @@ func (h *Handler) Auth(c echo.Context) error {
 			resp = err.Error()
 		}
 
-		c.String(http.StatusInternalServerError, resp)
+		slog.WarnContext(c.Request().Context(), "Auth error", "login", login, "deviceID", device, "error", err, "ip", c.RealIP())
+
+		return c.String(http.StatusInternalServerError, resp)
 	}
+
+	slog.InfoContext(c.Request().Context(), "Success auth", "login", login, "deviceID", device, "ip", c.RealIP())
 
 	resp, _ := crypto.StringEncrypt([]byte(userName), key)
 	return c.String(http.StatusOK, resp)

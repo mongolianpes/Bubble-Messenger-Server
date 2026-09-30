@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bubble/internal/crypto"
+	"log/slog"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -37,39 +38,46 @@ func (h *Handler) SendFile(c echo.Context) error {
 
 	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Sender, req.SenderPassword, req.Device)
 	if err != nil {
+		slog.ErrorContext(c.Request().Context(), "GetAuthInfo", "error", err)
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
 	req.Sender, err = crypto.StringDecrypt(req.Sender, key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	req.Receiver, err = crypto.StringDecrypt(req.Receiver, key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	req.FileName, err = crypto.StringDecrypt(req.FileName, key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 	req.File, err = crypto.StringDecryptByte(req.File, key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	fileStoragePath, err := h.FilesService.SaveFile(c.Request().Context(), req.File)
 	if err != nil {
+		slog.ErrorContext(c.Request().Context(), "Save File", "error", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Cant save file"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	if err := h.MessengerService.SendFile(c.Request().Context(), h.UsersService, req.Sender, req.Receiver, req.FileName, fileStoragePath); err != nil {
+		slog.ErrorContext(c.Request().Context(), "Send File", "error", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
@@ -89,22 +97,26 @@ func (h *Handler) DelFile(c echo.Context) error {
 
 	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
 	if err != nil {
+		slog.ErrorContext(c.Request().Context(), "GetAuthInfo", "error", err)
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
 	login, err = crypto.StringDecrypt(login, key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	fileName, err = crypto.StringDecrypt(fileName, key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	if err := h.FilesService.DelFile(c.Request().Context(), fileName); err != nil {
+		slog.ErrorContext(c.Request().Context(), "Del File", "error", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Cant del file"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
@@ -124,30 +136,37 @@ func (h *Handler) SetAvatar(c echo.Context) error {
 
 	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Login, req.Password, req.DeviceInfo)
 	if err != nil {
+		slog.ErrorContext(c.Request().Context(), "GetAuthInfo", "error", err, "ip", c.RealIP())
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
 	req.Login, err = crypto.StringDecrypt(req.Login, key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", req.DeviceInfo)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 	req.Avatar, err = crypto.StringDecryptByte(req.Avatar, key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", req.DeviceInfo)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	storageAvatarPath, err := h.FilesService.SaveAvatar(c.Request().Context(), req.Avatar)
 	if err != nil {
+		slog.ErrorContext(c.Request().Context(), "Save Avatar", "error", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	if err := h.UsersService.SetAvatar(c.Request().Context(), req.Login, storageAvatarPath); err != nil {
+		slog.ErrorContext(c.Request().Context(), "Set Avatar", "error", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusBadRequest, encryptResp)
 	}
+
+	slog.InfoContext(c.Request().Context(), "Success save avatar", "login", req.Login)
 
 	return c.NoContent(http.StatusOK)
 }
@@ -164,23 +183,27 @@ func (h *Handler) GetAvatar(c echo.Context) error {
 
 	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
 	if err != nil {
+		slog.ErrorContext(c.Request().Context(), "GetAuthInfo", "error", err, "ip", c.RealIP())
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
 	loginForSearch, err = crypto.StringDecrypt(loginForSearch, key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	avatar, err := h.UsersService.GetAvatar(c.Request().Context(), loginForSearch)
 	if err != nil {
+		slog.ErrorContext(c.Request().Context(), "Get Avatar", "error", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	avatar, err = crypto.StringEncrypt([]byte(avatar), key)
 	if err != nil {
+		slog.WarnContext(c.Request().Context(), "Decrypt error", "deviceID", device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
