@@ -4,6 +4,7 @@ import (
 	pb "bubble/internal/audiodialog/proto"
 	"context"
 	"log/slog"
+	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -20,7 +21,7 @@ type AudioDialogService interface {
 	Close() error
 }
 
-var audioDialogServiceHost = "localhost:50053"
+var audioDialogServiceHost = os.Getenv("AUDIO_DIALOG_SERVICE_HOST_GRPC_PORT")
 
 func NewClient() (*Client, error) {
 	client := &Client{}
