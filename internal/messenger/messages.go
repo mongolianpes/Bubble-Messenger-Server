@@ -70,7 +70,11 @@ func (c *Client) Check(ctx context.Context, usersService users.UsersService, log
 			return newMessages, err
 		}
 
-		newMessages = fmt.Appendf(nil, "%s\\\\%s", newMessages, messagesBytes)
+		if len(newMessages) == 0 {
+			newMessages = messagesBytes
+		} else {
+			newMessages = fmt.Appendf(newMessages, "\n%s", messagesBytes)
+		}
 	}
 
 	return newMessages, nil
