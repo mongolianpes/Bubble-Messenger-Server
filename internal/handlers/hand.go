@@ -38,7 +38,7 @@ func NewHand() (*Handler, error) {
 		return nil, err
 	}
 
-	blocker := ipblocker.New(3, 30*time.Minute)
+	blocker := ipblocker.New(10, 30*time.Minute)
 
 	return &Handler{
 		UsersService:       usersService,
