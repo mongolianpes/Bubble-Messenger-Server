@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  dbusers:
+    image: pgvector/pgvector:pg18
+    container_name: db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: bubble
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./DB/users/init:/docker-entrypoint-initdb.d
+
+  dbmessages:
+    image: pgvector/pgvector:pg18
+    container_name: db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: bubble
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./DB/messages/init:/docker-entrypoint-initdb.d
+
+  rdb:
+    image: redis:8
+    container_name: rdb
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  users:
+    build: ./Users
+    container_name: users
+    restart: unless-stopped
+    depends_on:
+      - dbusers
+    environment:
+      REDIS_HOST: rdb
+      DB_HOST: dbusers
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: 123
+      DB_NAME: bubble
+
+  messenger:
+    build: ./Messenger
+    container_name: messenger
+    restart: unless-stopped
+    depends_on:
+      - dbmessages
+    environment:
+      DB_HOST: dbmessages
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: 123
+      DB_NAME: bubble
+
+  files:
+    build: ./Files
+    container_name: files
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+
+  audiodialog:
+    build: ./AudioDialog
+    container_name: audiodialog
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+
+  main:
+    build: ./Main
+    container_name: main
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    depends_on:
+      - dbusers
+      - dbmessages
+      - rdb
+      - users
+      - messenger
+      - files
+      - audiodialog
+    environment:
+      USERS_SERVICE_HOST_GRPC_PORT: users:8086
+      MESSENGER_SERVICE_HOST_GRPC_PORT: messenger:8086
+      FILES_SERVICE_HOST_GRPC_PORT: files:8086
+      AUDIO_DIALOG_SERVICE_HOST_GRPC_PORT: audiodialog:8086
+
+volumes:
+  postgres_data:
+  redis_data:
