@@ -39,7 +39,7 @@ func (h *Handler) SendFile(c echo.Context) error {
 
 	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Sender, req.SenderPassword, req.Device)
 	if err != nil {
-		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", err, c.RealIP())
+		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", c.RealIP(), err)
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -78,7 +78,7 @@ func (h *Handler) SendFile(c echo.Context) error {
 	}
 
 	if err := h.MessengerService.SendFile(c.Request().Context(), h.UsersService, req.Sender, req.Receiver, req.FileName, fileStoragePath); err != nil {
-		c.Logger().Error("Send file ERR: %s", err)
+		c.Logger().Errorf("Send file ERR: %s", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
@@ -99,7 +99,7 @@ func (h *Handler) DelFile(c echo.Context) error {
 
 	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
 	if err != nil {
-		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", err, c.RealIP())
+		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", c.RealIP(), err)
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -140,7 +140,7 @@ func (h *Handler) SetAvatar(c echo.Context) error {
 
 	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Login, req.Password, req.DeviceInfo)
 	if err != nil {
-		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", err, c.RealIP())
+		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", c.RealIP(), err)
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -188,7 +188,7 @@ func (h *Handler) GetAvatar(c echo.Context) error {
 
 	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
 	if err != nil {
-		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", err, c.RealIP())
+		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", c.RealIP(), err)
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 

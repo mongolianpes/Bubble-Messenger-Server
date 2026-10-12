@@ -56,6 +56,7 @@ Start on ports: 23099, 23098, 23097
 		mediumSizeDataService.POST("/setavatar", hand.SetAvatar)
 		mediumSizeDataService.POST("/getavatar", hand.GetAvatar)
 		mediumSizeDataService.POST("/sendfile", hand.SendFile)
+		mediumSizeDataService.POST("/delfile", hand.DelFile)
 
 		if err := mediumSizeDataService.Start(":23098"); err != nil {
 			mediumSizeDataService.Logger.Errorf("Start medium size Data Service: %s", err)
