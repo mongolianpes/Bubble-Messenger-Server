@@ -61,6 +61,8 @@ Start on ports: 23099, 23098, 23097
 			mediumSizeDataService.Logger.Errorf("Start medium size Data Service: %s", err)
 		}
 	}()
+
+	select {}
 }
 
 func IPBlockMiddleware(blocker ipblocker.Blocker) echo.MiddlewareFunc {
