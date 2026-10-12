@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bubble/internal/crypto"
+	"context"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -78,6 +79,7 @@ func (h *Handler) SendFile(c echo.Context) error {
 	}
 
 	if err := h.MessengerService.SendFile(c.Request().Context(), h.UsersService, req.Sender, req.Receiver, req.FileName, fileStoragePath); err != nil {
+		go h.FilesService.DelFile(context.Background(), fileStoragePath)
 		c.Logger().Errorf("Send file ERR: %s", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
