@@ -201,19 +201,19 @@ func (h *Handler) GetAvatar(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	avatar, err := h.UsersService.GetAvatar(c.Request().Context(), loginForSearch)
+	storagePath, err := h.UsersService.GetAvatar(c.Request().Context(), loginForSearch)
 	if err != nil {
 		c.Logger().Error("Get Avatar ERR: %s", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	avatar, err = crypto.StringEncrypt([]byte(avatar), key)
+	storagePath, err = crypto.StringEncrypt([]byte(storagePath), key)
 	if err != nil {
 		c.Logger().Warnf("Encrypt error. DeviceID %s", device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	return c.JSON(http.StatusOK, avatar)
+	return c.String(http.StatusOK, storagePath)
 }
