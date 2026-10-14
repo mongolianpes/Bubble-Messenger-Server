@@ -77,6 +77,11 @@ func (h *Handler) SendMessage(c echo.Context) error {
 		response = "Audio dialog stop"
 	}
 
+	if err = h.MessengerService.Send(c.Request().Context(), h.UsersService, senderLogin, receiverLogin, message); err != nil {
+		responseEncrypted, _ := crypto.StringEncrypt([]byte(err.Error()), key)
+		return c.String(http.StatusInternalServerError, responseEncrypted)
+	}
+
 	if response != "" {
 		responseEncrypted, _ := crypto.StringEncrypt([]byte(response), key)
 		return c.String(http.StatusOK, responseEncrypted)
