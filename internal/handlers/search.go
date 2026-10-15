@@ -11,10 +11,9 @@ import (
 func (h *Handler) SearchUser(c echo.Context) error {
 	device := c.FormValue("device")
 	loginForSearch := c.FormValue("loginforsearch")
-	keyForServerDataBase := c.FormValue("forserver")
 	login := c.FormValue("login")
 	password := c.FormValue("password")
-	if device == "" || loginForSearch == "" || keyForServerDataBase == "" || login == "" || password == "" {
+	if device == "" || loginForSearch == "" || login == "" || password == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
