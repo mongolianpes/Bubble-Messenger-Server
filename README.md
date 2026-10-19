@@ -7,7 +7,7 @@
 - [Files](https://github.com/mongolianpes/Bubble-Messenger-Server-Files) - сохранение файлов пользователей
 - [AudioDialog](https://github.com/mongolianpes/Bubble-Messenger-Server-AudioDialog) - аудио диалог в реальном времени
 <br>
-Для взаимодействия с сервисной частью имеется [Клиентская часть](https://github.com/mongolianpes/Bubble-Messenger-Client)
+Для взаимодействия с сервисной частью имеется [Клиент](https://github.com/mongolianpes/Bubble-Messenger-Client)
 
 ## Функционал
 - Принимает внешние запросы от пользователей, а после возвращает им информацию в формате json
