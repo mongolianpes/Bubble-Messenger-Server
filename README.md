@@ -5,7 +5,7 @@
 - [Users](https://github.com/mongolianpes/Bubble-Messenger-Server-Users) - управление пользователями, сохранение сессий, TLS
 - [Messenger](https://github.com/mongolianpes/Bubble-Messenger-Server-Messenger) - обмен сообщений между пользователями, в том числе специальные сообщения для инициализации аудио диалога, окончания аудио диалога и передачи файлов
 - [Files](https://github.com/mongolianpes/Bubble-Messenger-Server-Files) - сохранение файлов пользователей
-- [AudioDialog](https://github.com/mongolianpes/Bubble-Messenger-Server-AudioDialog) - аудио диалог в реальном времени
+- [AudioDialog](https://github.com/mongolianpes/Bubble-Messenger-Server-AudioDialog) - аудио диалог в реальном времени <br>
 Для взаимодействия с сервисной частью имеется [Клиент](https://github.com/mongolianpes/Bubble-Messenger-Client)
 
 ## Функционал
