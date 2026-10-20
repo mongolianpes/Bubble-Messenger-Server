@@ -18,6 +18,19 @@ type KeyExchangeRequest struct {
 	IsRegistring    bool   `json:"is_registring"`
 }
 
+type RegRequest struct {
+	Login    string
+	Name     string
+	Password string
+	Device   string
+}
+
+type AuthRequest struct {
+	Login    string
+	Password string
+	Device   string
+}
+
 func (h *Handler) TLS(c echo.Context) error {
 	var req KeyExchangeRequest
 	if err := c.Bind(&req); err != nil {
@@ -39,17 +52,18 @@ func (h *Handler) TLS(c echo.Context) error {
 }
 
 func (h *Handler) Reg(c echo.Context) error {
-	login := c.FormValue("login")
-	name := c.FormValue("name")
-	password := c.FormValue("password")
-	device := c.FormValue("device")
-	keyForServerDataBase := c.FormValue("forserver")
-	if login == "" || name == "" || password == "" || device == "" || keyForServerDataBase == "" {
+	var req RegRequest
+	if err := c.Bind(&req); err != nil {
+		h.Blocker.RegisterStrike(c.RealIP())
+		return c.JSON(http.StatusBadRequest, "Invalid JSON")
+	}
+
+	if req.Login == "" || req.Name == "" || req.Password == "" || req.Device == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, err := h.UsersService.Register(c.Request().Context(), login, name, password, device)
+	key, err := h.UsersService.Register(c.Request().Context(), req.Login, req.Name, req.Password, req.Device)
 	if err != nil {
 		resp := ""
 		if key != "" {
@@ -58,26 +72,28 @@ func (h *Handler) Reg(c echo.Context) error {
 			resp = err.Error()
 		}
 
-		c.Logger().Warnf("Register error. Login %s, deviceID %s, IP %s, ERR: %s", login, device, c.RealIP(), err)
+		c.Logger().Warnf("Register error. Login %s, deviceID %s, IP %s, ERR: %s", req.Login, req.Device, c.RealIP(), err)
 
 		return c.String(http.StatusInternalServerError, resp)
 	}
 
-	c.Logger().Infof("Success registraion %s. DeviceID %s, IP %s", login, device, c.RealIP())
+	c.Logger().Infof("Success registraion %s. DeviceID %s, IP %s", req.Login, req.Device, c.RealIP())
 	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) Auth(c echo.Context) error {
-	login := c.FormValue("login")
-	password := c.FormValue("password")
-	device := c.FormValue("device")
-	keyForServerDataBase := c.FormValue("forserver")
-	if login == "" || password == "" || device == "" || keyForServerDataBase == "" {
+	var req AuthRequest
+	if err := c.Bind(&req); err != nil {
+		h.Blocker.RegisterStrike(c.RealIP())
+		return c.JSON(http.StatusBadRequest, "Invalid JSON")
+	}
+
+	if req.Login == "" || req.Password == "" || req.Device == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	userName, key, err := h.UsersService.Auth(c.Request().Context(), login, password, device)
+	userName, key, err := h.UsersService.Auth(c.Request().Context(), req.Login, req.Password, req.Device)
 	if err != nil {
 		resp := ""
 		if key != "" {
@@ -86,12 +102,12 @@ func (h *Handler) Auth(c echo.Context) error {
 			resp = err.Error()
 		}
 
-		c.Logger().Warnf("Auth error. Login %s, deviceID %s, IP %s, ERR: %s", login, device, c.RealIP(), err)
+		c.Logger().Warnf("Auth error. Login %s, deviceID %s, IP %s, ERR: %s", req.Login, req.Device, c.RealIP(), err)
 
 		return c.String(http.StatusInternalServerError, resp)
 	}
 
-	c.Logger().Infof("Success auth %s. DeviceID %s, IP %s", login, device, c.RealIP())
+	c.Logger().Infof("Success auth %s. DeviceID %s, IP %s", req.Login, req.Device, c.RealIP())
 
 	resp, _ := crypto.StringEncrypt([]byte(userName), key)
 	return c.String(http.StatusOK, resp)
