@@ -10,6 +10,26 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+type SendMessageRequest struct {
+	SenderLogin    string
+	SenderPassword string
+	ReceiverLogin  string
+	Device         string
+	Message        string
+}
+
+type CheckMessagesRequest struct {
+	Login    string
+	Password string
+	Device   string
+}
+
+type DelMessagesRequest struct {
+	Login    string
+	Password string
+	Device   string
+}
+
 const (
 	identificatorForInitAudioDialog           = "a\\"
 	identificatorForStopAudioDialog           = "as\\"
@@ -25,43 +45,44 @@ var audioDialogsMu sync.RWMutex
 
 func (h *Handler) SendMessage(c echo.Context) error {
 	var response string
-	senderLogin := c.FormValue("senderlogin")
-	senderPassword := c.FormValue("senderpassword")
-	receiverLogin := c.FormValue("receiverlogin")
-	message := c.FormValue("message")
-	device := c.FormValue("device")
-	keyForServerDataBase := c.FormValue("forserver")
-	if senderLogin == "" || senderPassword == "" || receiverLogin == "" || message == "" || device == "" || keyForServerDataBase == "" {
+
+	var req SendMessageRequest
+	if err := c.Bind(&req); err != nil {
+		h.Blocker.RegisterStrike(c.RealIP())
+		return c.JSON(http.StatusBadRequest, "Invalid JSON")
+	}
+
+	if req.SenderLogin == "" || req.SenderPassword == "" || req.ReceiverLogin == "" || req.Message == "" || req.Device == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), senderLogin, senderPassword, device)
+	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.SenderLogin, req.SenderPassword, req.Device)
 	if err != nil {
 		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", err, c.RealIP())
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
-	senderLogin, err = crypto.StringDecrypt(senderLogin, key)
-	if err != nil || senderLogin == "" {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", device)
+	req.SenderLogin, err = crypto.StringDecrypt(req.SenderLogin, key)
+	if err != nil || req.SenderLogin == "" {
+		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
-	receiverLogin, err = crypto.StringDecrypt(receiverLogin, key)
-	if err != nil || receiverLogin == "" {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", device)
+	req.ReceiverLogin, err = crypto.StringDecrypt(req.ReceiverLogin, key)
+	if err != nil || req.ReceiverLogin == "" {
+		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
-	message, err = crypto.StringDecrypt(message, key)
+	req.Message, err = crypto.StringDecrypt(req.Message, key)
 	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", device)
+		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	if message == identificatorForInitAudioDialog {
+	if req.Message == identificatorForInitAudioDialog {
 		dialogID, senderID, receiverID, err := h.AudioDialogService.CreateAudioDialog(c.Request().Context())
 		if err != nil {
 			c.Logger().Errorf("Create dialog ERR: %s", err)
@@ -69,15 +90,15 @@ func (h *Handler) SendMessage(c echo.Context) error {
 			return c.String(http.StatusInternalServerError, encryptResp)
 		}
 
-		message = identificatorForSecondStepInitAudioDialog + dialogID + "\\" + receiverID
+		req.Message = identificatorForSecondStepInitAudioDialog + dialogID + "\\" + receiverID
 		response = dialogID + "\\" + senderID
-	} else if strings.HasPrefix(message, identificatorForStopAudioDialog) {
-		dialogUUID := strings.Split(message, "\\")[1]
+	} else if strings.HasPrefix(req.Message, identificatorForStopAudioDialog) {
+		dialogUUID := strings.Split(req.Message, "\\")[1]
 		h.AudioDialogService.DeleteAudioDialog(c.Request().Context(), dialogUUID)
 		response = "Audio dialog stop"
 	}
 
-	if err = h.MessengerService.Send(c.Request().Context(), h.UsersService, senderLogin, receiverLogin, message); err != nil {
+	if err = h.MessengerService.Send(c.Request().Context(), h.UsersService, req.SenderLogin, req.ReceiverLogin, req.Message); err != nil {
 		responseEncrypted, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, responseEncrypted)
 	}
@@ -91,29 +112,31 @@ func (h *Handler) SendMessage(c echo.Context) error {
 }
 
 func (h *Handler) CheckMessage(c echo.Context) error {
-	login := c.FormValue("login")
-	password := c.FormValue("password")
-	device := c.FormValue("device")
-	keyForServerDataBase := c.FormValue("forserver")
-	if device == "" || login == "" || password == "" || keyForServerDataBase == "" {
+	var req CheckMessagesRequest
+	if err := c.Bind(&req); err != nil {
+		h.Blocker.RegisterStrike(c.RealIP())
+		return c.JSON(http.StatusBadRequest, "Invalid JSON")
+	}
+
+	if req.Device == "" || req.Login == "" || req.Password == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
+	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Login, req.Password, req.Device)
 	if err != nil {
 		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", err, c.RealIP())
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
-	login, err = crypto.StringDecrypt(login, key)
+	req.Login, err = crypto.StringDecrypt(req.Login, key)
 	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", device)
+		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	newMessages, err := h.MessengerService.Check(c.Request().Context(), h.UsersService, login)
+	newMessages, err := h.MessengerService.Check(c.Request().Context(), h.UsersService, req.Login)
 	if err != nil {
 		c.Logger().Errorf("Check Messages ERR: %s", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
@@ -129,29 +152,31 @@ func (h *Handler) CheckMessage(c echo.Context) error {
 }
 
 func (h *Handler) DelMessages(c echo.Context) error {
-	login := c.FormValue("login")
-	password := c.FormValue("password")
-	device := c.FormValue("device")
-	keyForServerDataBase := c.FormValue("forserver")
-	if device == "" || login == "" || password == "" || keyForServerDataBase == "" {
+	var req DelMessagesRequest
+	if err := c.Bind(&req); err != nil {
+		h.Blocker.RegisterStrike(c.RealIP())
+		return c.JSON(http.StatusBadRequest, "Invalid JSON")
+	}
+
+	if req.Device == "" || req.Login == "" || req.Password == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
+	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Login, req.Password, req.Device)
 	if err != nil {
 		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", err, c.RealIP())
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
-	login, err = crypto.StringDecrypt(login, key)
+	req.Login, err = crypto.StringDecrypt(req.Login, key)
 	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", device)
+		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	if err := h.MessengerService.Del(c.Request().Context(), h.UsersService, login); err != nil {
+	if err := h.MessengerService.Del(c.Request().Context(), h.UsersService, req.Login); err != nil {
 		c.Logger().Errorf("Del messages ERR: %s", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
 		return c.String(http.StatusInternalServerError, encryptResp)

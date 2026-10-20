@@ -18,12 +18,19 @@ type SendFileRequest struct {
 	File                 []byte
 }
 
-type Avatar struct {
+type SetAvatarRequest struct {
 	Avatar               []byte `json:"avatar"`
 	Login                string `json:"login"`
 	Password             string `json:"password"`
 	DeviceInfo           string `json:"deviceinfo"`
 	KeyForServerDataBase string `json:"forserver"`
+}
+
+type DelFileRequest struct {
+	Login    string
+	Password string
+	Filename string
+	Device   string
 }
 
 func (h *Handler) SendFile(c echo.Context) error {
@@ -89,37 +96,38 @@ func (h *Handler) SendFile(c echo.Context) error {
 }
 
 func (h *Handler) DelFile(c echo.Context) error {
-	device := c.FormValue("device")
-	login := c.FormValue("login")
-	password := c.FormValue("password")
-	fileName := c.FormValue("filename")
-	keyForServerDataBase := c.FormValue("forserver")
-	if device == "" || login == "" || password == "" || fileName == "" || keyForServerDataBase == "" {
+	var req DelFileRequest
+	if err := c.Bind(&req); err != nil {
+		h.Blocker.RegisterStrike(c.RealIP())
+		return c.JSON(http.StatusBadRequest, "Invalid JSON")
+	}
+
+	if req.Device == "" || req.Login == "" || req.Password == "" || req.Filename == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
+	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Login, req.Password, req.Device)
 	if err != nil {
 		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", c.RealIP(), err)
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
-	login, err = crypto.StringDecrypt(login, key)
+	req.Login, err = crypto.StringDecrypt(req.Login, key)
 	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", device)
+		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	fileName, err = crypto.StringDecrypt(fileName, key)
+	req.Filename, err = crypto.StringDecrypt(req.Filename, key)
 	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", device)
+		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
-	if err := h.FilesService.DelFile(c.Request().Context(), fileName); err != nil {
+	if err := h.FilesService.DelFile(c.Request().Context(), req.Filename); err != nil {
 		c.Logger().Error("Del file ERR: %s", err)
 		encryptResp, _ := crypto.StringEncrypt([]byte("Cant del file"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
@@ -129,7 +137,7 @@ func (h *Handler) DelFile(c echo.Context) error {
 }
 
 func (h *Handler) SetAvatar(c echo.Context) error {
-	var req Avatar
+	var req SetAvatarRequest
 	if err := c.Bind(&req); err != nil {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
