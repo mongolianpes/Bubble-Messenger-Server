@@ -40,6 +40,7 @@ Start on ports: 23099, 23098, 23097
 		mainService.POST("/searchuser", hand.SearchUser)
 		mainService.POST("/sendmessage", hand.SendMessage)
 		mainService.POST("/checkmessage", hand.CheckMessage)
+		mainService.POST("/delmessages", hand.DelMessages)
 
 		if err := mainService.Start(":23099"); err != nil {
 			mainService.Logger.Error("Start main Service: %s", err)
@@ -52,7 +53,6 @@ Start on ports: 23099, 23098, 23097
 		mediumSizeDataService.Use(middleware.Recover())
 		mediumSizeDataService.Use(middleware.ContextTimeout(timeToProcessRequest))
 		mediumSizeDataService.HideBanner = true
-		mediumSizeDataService.POST("/delmessages", hand.DelMessages)
 		mediumSizeDataService.POST("/setavatar", hand.SetAvatar)
 		mediumSizeDataService.POST("/getavatar", hand.GetAvatar)
 		mediumSizeDataService.POST("/sendfile", hand.SendFile)
