@@ -29,37 +29,59 @@ Start on ports: 23099, 23098, 23097
 	}
 
 	go func() {
-		mainService := echo.New()
-		mainService.Use(IPBlockMiddleware(hand.Blocker))
-		mainService.Use(middleware.Recover())
-		mainService.Use(middleware.ContextTimeout(timeToProcessRequest))
-		mainService.HideBanner = true
-		mainService.POST("/exchangekey", hand.TLS)
-		mainService.POST("/reg", hand.Reg)
-		mainService.POST("/auth", hand.Auth)
-		mainService.POST("/searchuser", hand.SearchUser)
-		mainService.POST("/sendmessage", hand.SendMessage)
-		mainService.POST("/checkmessage", hand.CheckMessage)
-		mainService.POST("/delmessages", hand.DelMessages)
+		e := echo.New()
+		e.Use(IPBlockMiddleware(hand.Blocker))
+		e.Use(middleware.Recover())
+		e.Use(middleware.ContextTimeout(timeToProcessRequest))
+		e.HideBanner = true
+		e.POST("/searchuser", hand.RouterSearchUser)
+		e.POST("/sendmessage", hand.RouterSendMessage)
+		e.POST("/checkmessage", hand.RouterCheckMessages)
+		e.POST("/delmessages", hand.RouterDelMessages)
+		e.POST("/setavatar", hand.RouterSetAvatar)
+		e.POST("/getavatar", hand.RouterGetAvatar)
+		e.POST("/sendfile", hand.RouterSendFile)
+		e.POST("/delfile", hand.RouterDelFile)
 
-		if err := mainService.Start(":23099"); err != nil {
-			mainService.Logger.Error("Start main Service: %s", err)
+		if err := e.Start(":443"); err != nil {
+			e.Logger.Error("Start https Service: %s", err)
 		}
 	}()
 
 	go func() {
-		mediumSizeDataService := echo.New()
-		mediumSizeDataService.Use(IPBlockMiddleware(hand.Blocker))
-		mediumSizeDataService.Use(middleware.Recover())
-		mediumSizeDataService.Use(middleware.ContextTimeout(timeToProcessRequest))
-		mediumSizeDataService.HideBanner = true
-		mediumSizeDataService.POST("/setavatar", hand.SetAvatar)
-		mediumSizeDataService.POST("/getavatar", hand.GetAvatar)
-		mediumSizeDataService.POST("/sendfile", hand.SendFile)
-		mediumSizeDataService.POST("/delfile", hand.DelFile)
+		e := echo.New()
+		e.Use(IPBlockMiddleware(hand.Blocker))
+		e.Use(middleware.Recover())
+		e.Use(middleware.ContextTimeout(timeToProcessRequest))
+		e.HideBanner = true
+		e.POST("/*", hand.Router)
+		e.POST("/exchangekey", hand.Handlers.TLS)
+		e.POST("/reg", hand.Handlers.Reg)
+		e.POST("/auth", hand.Handlers.Auth)
+		// e.POST("/searchuser", hand.SearchUser)
+		// e.POST("/sendmessage", hand.Handlers.SendMessage)
+		// e.POST("/checkmessage", hand.Handlers.CheckMessage)
+		// e.POST("/delmessages", hand.Handlers.DelMessages)
 
-		if err := mediumSizeDataService.Start(":23098"); err != nil {
-			mediumSizeDataService.Logger.Errorf("Start medium size Data Service: %s", err)
+		if err := e.Start(":23099"); err != nil {
+			e.Logger.Error("Start main Service: %s", err)
+		}
+	}()
+
+	go func() {
+		e := echo.New()
+		e.Use(IPBlockMiddleware(hand.Blocker))
+		e.Use(middleware.Recover())
+		e.Use(middleware.ContextTimeout(timeToProcessRequest))
+		e.HideBanner = true
+		e.POST("/*", hand.Router)
+		// e.POST("/setavatar", hand.Handlers.SetAvatar)
+		// e.POST("/getavatar", hand.Handlers.GetAvatar)
+		// e.POST("/sendfile", hand.Handlers.SendFile)
+		// e.POST("/delfile", hand.Handlers.DelFile)
+
+		if err := e.Start(":23098"); err != nil {
+			e.Logger.Errorf("Start medium size Data Service: %s", err)
 		}
 	}()
 

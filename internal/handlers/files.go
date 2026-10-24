@@ -3,181 +3,120 @@ package handlers
 import (
 	"bubble/internal/crypto"
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 )
 
 type SendFileRequest struct {
-	Sender               string
-	Receiver             string
-	SenderPassword       string
-	FileName             string
-	Device               string
-	KeyForServerDataBase string
-	File                 []byte
-}
-
-type SetAvatarRequest struct {
-	Avatar               []byte `json:"avatar"`
-	Login                string `json:"login"`
-	Password             string `json:"password"`
-	DeviceInfo           string `json:"deviceinfo"`
-	KeyForServerDataBase string `json:"forserver"`
+	Sender   string
+	Receiver string
+	FileName string
+	File     []byte
 }
 
 type DelFileRequest struct {
-	Login    string
-	Password string
 	Filename string
-	Device   string
 }
 
-func (h *Handler) SendFile(c echo.Context) error {
+type SetAvatarRequest struct {
+	Avatar []byte `json:"avatar"`
+	Login  string `json:"login"`
+}
+
+type GetAvatarRequest struct {
+	LoginForSearch string
+}
+
+func (h *Handler) SendFile(c echo.Context, requestBody []byte, key string) error {
 	var req SendFileRequest
-	if err := c.Bind(&req); err != nil {
+	if err := json.Unmarshal(requestBody, &req); err != nil {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.JSON(http.StatusBadRequest, "Invalid JSON")
 	}
 
-	if req.Sender == "" || req.Receiver == "" || req.SenderPassword == "" || req.FileName == "" || req.Device == "" || req.KeyForServerDataBase == "" || req.File == nil {
+	if req.Sender == "" || req.Receiver == "" || req.FileName == "" || req.File == nil {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
-	}
-
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Sender, req.SenderPassword, req.Device)
-	if err != nil {
-		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", c.RealIP(), err)
-		return c.String(http.StatusInternalServerError, err.Error())
-	}
-
-	req.Sender, err = crypto.StringDecrypt(req.Sender, key)
-	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	req.Receiver, err = crypto.StringDecrypt(req.Receiver, key)
-	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	req.FileName, err = crypto.StringDecrypt(req.FileName, key)
-	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-	req.File, err = crypto.StringDecryptByte(req.File, key)
-	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	fileStoragePath, err := h.FilesService.SaveFile(c.Request().Context(), req.File)
 	if err != nil {
 		c.Logger().Error("Save file ERR: %s", err)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Cant save file"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
+		resp := "Cant save file"
+		if key != "" {
+			resp, _ = crypto.StringEncrypt([]byte(resp), key)
+		}
+		return c.String(http.StatusInternalServerError, resp)
 	}
 
 	if err := h.MessengerService.SendFile(c.Request().Context(), h.UsersService, req.Sender, req.Receiver, req.FileName, fileStoragePath); err != nil {
 		go h.FilesService.DelFile(context.Background(), fileStoragePath)
 		c.Logger().Errorf("Send file ERR: %s", err)
-		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
+		resp := err.Error()
+		if key != "" {
+			resp, _ = crypto.StringEncrypt([]byte(resp), key)
+		}
+		return c.String(http.StatusInternalServerError, resp)
 	}
 
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) DelFile(c echo.Context) error {
+func (h *Handler) DelFile(c echo.Context, requestBody []byte, key string) error {
 	var req DelFileRequest
-	if err := c.Bind(&req); err != nil {
+	if err := json.Unmarshal(requestBody, &req); err != nil {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.JSON(http.StatusBadRequest, "Invalid JSON")
 	}
 
-	if req.Device == "" || req.Login == "" || req.Password == "" || req.Filename == "" {
+	if req.Filename == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Login, req.Password, req.Device)
-	if err != nil {
-		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", c.RealIP(), err)
-		return c.String(http.StatusInternalServerError, err.Error())
-	}
-
-	req.Login, err = crypto.StringDecrypt(req.Login, key)
-	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	req.Filename, err = crypto.StringDecrypt(req.Filename, key)
-	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
 	if err := h.FilesService.DelFile(c.Request().Context(), req.Filename); err != nil {
 		c.Logger().Error("Del file ERR: %s", err)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Cant del file"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
+		resp := "Cant del file"
+		if key != "" {
+			resp, _ = crypto.StringEncrypt([]byte(resp), key)
+		}
+		return c.String(http.StatusInternalServerError, resp)
 	}
 
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) SetAvatar(c echo.Context) error {
+func (h *Handler) SetAvatar(c echo.Context, requestBody []byte, key string) error {
 	var req SetAvatarRequest
-	if err := c.Bind(&req); err != nil {
+	if err := json.Unmarshal(requestBody, &req); err != nil {
 		h.Blocker.RegisterStrike(c.RealIP())
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
+		return c.JSON(http.StatusBadRequest, "Invalid JSON")
 	}
 
-	if req.DeviceInfo == "" || req.Login == "" || req.Password == "" || req.KeyForServerDataBase == "" {
+	if req.Login == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
-	}
-
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), req.Login, req.Password, req.DeviceInfo)
-	if err != nil {
-		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", c.RealIP(), err)
-		return c.String(http.StatusInternalServerError, err.Error())
-	}
-
-	req.Login, err = crypto.StringDecrypt(req.Login, key)
-	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", req.DeviceInfo)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-	req.Avatar, err = crypto.StringDecryptByte(req.Avatar, key)
-	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", req.DeviceInfo)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
 	}
 
 	storageAvatarPath, err := h.FilesService.SaveAvatar(c.Request().Context(), req.Avatar)
 	if err != nil {
 		c.Logger().Error("Save avatar ERR: %s", err)
-		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
+		resp := err.Error()
+		if key != "" {
+			resp, _ = crypto.StringEncrypt([]byte(resp), key)
+		}
+		return c.String(http.StatusInternalServerError, resp)
 	}
 
 	if err := h.UsersService.SetAvatar(c.Request().Context(), req.Login, storageAvatarPath); err != nil {
 		c.Logger().Error("Set avatar ERR %s", err)
-		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
-		return c.String(http.StatusBadRequest, encryptResp)
+		resp := err.Error()
+		if key != "" {
+			resp, _ = crypto.StringEncrypt([]byte(resp), key)
+		}
+		return c.String(http.StatusBadRequest, resp)
 	}
 
 	c.Logger().Infof("Success save avatar by %s", req.Login)
@@ -185,42 +124,37 @@ func (h *Handler) SetAvatar(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) GetAvatar(c echo.Context) error {
-	device := c.FormValue("device")
-	loginForSearch := c.FormValue("loginforsearch")
-	keyForServerDataBase := c.FormValue("forserver")
-	login := c.FormValue("login")
-	password := c.FormValue("password")
-	if device == "" || loginForSearch == "" || keyForServerDataBase == "" || login == "" || password == "" {
+func (h *Handler) GetAvatar(c echo.Context, requestBody []byte, key string) error {
+	var req GetAvatarRequest
+	if err := json.Unmarshal(requestBody, &req); err != nil {
+		h.Blocker.RegisterStrike(c.RealIP())
+		return c.JSON(http.StatusBadRequest, "Invalid JSON")
+	}
+
+	if req.LoginForSearch == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	key, _, err := h.UsersService.GetAuthInfo(c.Request().Context(), login, password, device)
-	if err != nil {
-		c.Logger().Errorf("GetAuthInfo IP %s ERR: %s", c.RealIP(), err)
-		return c.String(http.StatusInternalServerError, err.Error())
-	}
-
-	loginForSearch, err = crypto.StringDecrypt(loginForSearch, key)
-	if err != nil {
-		c.Logger().Warnf("Decrypt error. DeviceID %s", device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
-	}
-
-	storagePath, err := h.UsersService.GetAvatar(c.Request().Context(), loginForSearch)
+	storagePath, err := h.UsersService.GetAvatar(c.Request().Context(), req.LoginForSearch)
 	if err != nil {
 		c.Logger().Error("Get Avatar ERR: %s", err)
-		encryptResp, _ := crypto.StringEncrypt([]byte(err.Error()), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
+		resp := err.Error()
+		if key != "" {
+			resp, _ = crypto.StringEncrypt([]byte(resp), key)
+		}
+		return c.String(http.StatusInternalServerError, resp)
 	}
 
-	storagePath, err = crypto.StringEncrypt([]byte(storagePath), key)
-	if err != nil {
-		c.Logger().Warnf("Encrypt error. DeviceID %s", device)
-		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
-		return c.String(http.StatusInternalServerError, encryptResp)
+	if key != "" {
+		storagePath, err = crypto.StringEncrypt([]byte(storagePath), key)
+		if err != nil {
+			resp := "Decrypted error"
+			if key != "" {
+				resp, _ = crypto.StringEncrypt([]byte(resp), key)
+			}
+			return c.String(http.StatusInternalServerError, resp)
+		}
 	}
 
 	return c.String(http.StatusOK, storagePath)
