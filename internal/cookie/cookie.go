@@ -10,7 +10,7 @@ import (
 const (
 	UserLogin = "login"
 	UserName  = "name"
-	SessionID = "id"
+	SessionID = "session_id"
 )
 
 func Set(c echo.Context, name, value string) {
