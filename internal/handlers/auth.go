@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"bubble/internal/crypto"
+	"bubble/internal/models"
 
 	"github.com/labstack/echo/v4"
 )
@@ -105,6 +107,19 @@ func (h *Handler) Auth(c echo.Context) error {
 		c.Logger().Warnf("Auth error. Login %s, deviceID %s, IP %s, ERR: %s", req.Login, req.Device, c.RealIP(), err)
 
 		return c.String(http.StatusInternalServerError, resp)
+	}
+
+	if req.Device == "" {
+		cookie := &http.Cookie{
+			Name:     models.CookieLogin,
+			Value:    key,
+			Expires:  time.Now().Add(24 * time.Hour),
+			HttpOnly: true,
+			Path:     "/auth",
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+		}
+		c.SetCookie(cookie)
 	}
 
 	c.Logger().Infof("Success auth %s. DeviceID %s, IP %s", req.Login, req.Device, c.RealIP())
