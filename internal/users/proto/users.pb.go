@@ -474,10 +474,14 @@ func (x *AuthRequest) GetDevice() string {
 }
 
 type AuthResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserName      string                 `protobuf:"bytes,1,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	UserId        int64                  `protobuf:"varint,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	UserName string                 `protobuf:"bytes,1,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
+	UserId   int64                  `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Types that are valid to be assigned to AuthMaterial:
+	//
+	//	*AuthResponse_Key
+	//	*AuthResponse_SessionID
+	AuthMaterial  isAuthResponse_AuthMaterial `protobuf_oneof:"auth_material"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -519,19 +523,53 @@ func (x *AuthResponse) GetUserName() string {
 	return ""
 }
 
-func (x *AuthResponse) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
 func (x *AuthResponse) GetUserId() int64 {
 	if x != nil {
 		return x.UserId
 	}
 	return 0
 }
+
+func (x *AuthResponse) GetAuthMaterial() isAuthResponse_AuthMaterial {
+	if x != nil {
+		return x.AuthMaterial
+	}
+	return nil
+}
+
+func (x *AuthResponse) GetKey() string {
+	if x != nil {
+		if x, ok := x.AuthMaterial.(*AuthResponse_Key); ok {
+			return x.Key
+		}
+	}
+	return ""
+}
+
+func (x *AuthResponse) GetSessionID() string {
+	if x != nil {
+		if x, ok := x.AuthMaterial.(*AuthResponse_SessionID); ok {
+			return x.SessionID
+		}
+	}
+	return ""
+}
+
+type isAuthResponse_AuthMaterial interface {
+	isAuthResponse_AuthMaterial()
+}
+
+type AuthResponse_Key struct {
+	Key string `protobuf:"bytes,3,opt,name=key,proto3,oneof"`
+}
+
+type AuthResponse_SessionID struct {
+	SessionID string `protobuf:"bytes,4,opt,name=sessionID,proto3,oneof"`
+}
+
+func (*AuthResponse_Key) isAuthResponse_AuthMaterial() {}
+
+func (*AuthResponse_SessionID) isAuthResponse_AuthMaterial() {}
 
 type GetAuthInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -919,11 +957,13 @@ const file_users_proto_rawDesc = "" +
 	"\vAuthRequest\x12\x14\n" +
 	"\x05login\x18\x01 \x01(\tR\x05login\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x16\n" +
-	"\x06device\x18\x03 \x01(\tR\x06device\"V\n" +
+	"\x06device\x18\x03 \x01(\tR\x06device\"\x89\x01\n" +
 	"\fAuthResponse\x12\x1b\n" +
-	"\tuser_name\x18\x01 \x01(\tR\buserName\x12\x10\n" +
-	"\x03key\x18\x02 \x01(\tR\x03key\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\x03R\x06userId\"^\n" +
+	"\tuser_name\x18\x01 \x01(\tR\buserName\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x12\n" +
+	"\x03key\x18\x03 \x01(\tH\x00R\x03key\x12\x1e\n" +
+	"\tsessionID\x18\x04 \x01(\tH\x00R\tsessionIDB\x0f\n" +
+	"\rauth_material\"^\n" +
 	"\x12GetAuthInfoRequest\x12\x16\n" +
 	"\x06device\x18\x01 \x01(\tR\x06device\x12\x14\n" +
 	"\x05login\x18\x02 \x01(\tR\x05login\x12\x1a\n" +
@@ -1015,6 +1055,10 @@ func init() { file_users_proto_init() }
 func file_users_proto_init() {
 	if File_users_proto != nil {
 		return
+	}
+	file_users_proto_msgTypes[9].OneofWrappers = []any{
+		(*AuthResponse_Key)(nil),
+		(*AuthResponse_SessionID)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

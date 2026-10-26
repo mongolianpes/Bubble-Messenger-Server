@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"fmt"
 
 	pb "bubble/internal/users/proto"
 	"time"
@@ -49,7 +50,14 @@ func (c *Client) Auth(ctx context.Context, login, password, device string) (stri
 		return "", "", err
 	}
 
-	return resp.UserName, resp.Key, nil
+	switch m := resp.AuthMaterial.(type) {
+	case *pb.AuthResponse_Key:
+		return resp.UserName, m.Key, nil
+	case *pb.AuthResponse_SessionID:
+		return resp.UserName, m.SessionID, nil
+	default:
+		return "", "", fmt.Errorf("unknown auth material type: %T", m)
+	}
 }
 
 func (c *Client) GetAuthInfo(ctx context.Context, login, password, device string) (string, int, error) {

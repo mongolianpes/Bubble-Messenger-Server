@@ -48,8 +48,11 @@ message AuthRequest {
 
 message AuthResponse {
   string user_name = 1;
-  string key = 2;
-  int64 user_id = 3;
+  int64 user_id = 2;
+  oneof auth_material {
+    string key = 3;
+    string sessionID = 4;
+  }
 }
 
 message GetAuthInfoRequest {
