@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"bubble/internal/cookie"
 	"bubble/internal/crypto"
-	"bubble/internal/models"
 	"io"
 	"net/http"
 	"strings"
@@ -135,7 +135,7 @@ func (rh *TLSHandler) RouterSendFile(c echo.Context) error {
 		return err
 	}
 
-	login, err := c.Cookie(models.CookieLogin)
+	login, err := c.Cookie(cookie.UserLogin)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Cookie mycookie is missing")
 	}
@@ -158,7 +158,7 @@ func (rh *TLSHandler) RouterSetAvatar(c echo.Context) error {
 		return err
 	}
 
-	login, err := c.Cookie(models.CookieLogin)
+	login, err := c.Cookie(cookie.UserLogin)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Cookie mycookie is missing")
 	}
@@ -190,7 +190,7 @@ func (rh *TLSHandler) RouterSendMessage(c echo.Context) error {
 		return err
 	}
 
-	login, err := c.Cookie(models.CookieLogin)
+	login, err := c.Cookie(cookie.UserLogin)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Cookie mycookie is missing")
 	}
@@ -199,7 +199,7 @@ func (rh *TLSHandler) RouterSendMessage(c echo.Context) error {
 }
 
 func (rh *TLSHandler) RouterCheckMessages(c echo.Context) error {
-	login, err := c.Cookie(models.CookieLogin)
+	login, err := c.Cookie(cookie.UserLogin)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Cookie mycookie is missing")
 	}
@@ -208,7 +208,7 @@ func (rh *TLSHandler) RouterCheckMessages(c echo.Context) error {
 }
 
 func (rh *TLSHandler) RouterDelMessages(c echo.Context) error {
-	login, err := c.Cookie(models.CookieLogin)
+	login, err := c.Cookie(cookie.UserLogin)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Cookie mycookie is missing")
 	}
