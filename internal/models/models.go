@@ -13,3 +13,5 @@ type Message struct {
 	Text        string
 	SendTime    time.Time
 }
+
+const CookieLogin = "login"
