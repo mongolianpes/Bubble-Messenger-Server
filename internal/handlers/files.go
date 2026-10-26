@@ -10,7 +10,6 @@ import (
 )
 
 type SendFileRequest struct {
-	Sender   string
 	Receiver string
 	FileName string
 	File     []byte
@@ -22,21 +21,20 @@ type DelFileRequest struct {
 
 type SetAvatarRequest struct {
 	Avatar []byte `json:"avatar"`
-	Login  string `json:"login"`
 }
 
 type GetAvatarRequest struct {
 	LoginForSearch string
 }
 
-func (h *Handler) SendFile(c echo.Context, requestBody []byte, key string) error {
+func (h *Handler) SendFile(c echo.Context, requestBody []byte, key string, userLogin string) error {
 	var req SendFileRequest
 	if err := json.Unmarshal(requestBody, &req); err != nil {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.JSON(http.StatusBadRequest, "Invalid JSON")
 	}
 
-	if req.Sender == "" || req.Receiver == "" || req.FileName == "" || req.File == nil {
+	if req.Receiver == "" || req.FileName == "" || req.File == nil {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
@@ -51,7 +49,7 @@ func (h *Handler) SendFile(c echo.Context, requestBody []byte, key string) error
 		return c.String(http.StatusInternalServerError, resp)
 	}
 
-	if err := h.MessengerService.SendFile(c.Request().Context(), h.UsersService, req.Sender, req.Receiver, req.FileName, fileStoragePath); err != nil {
+	if err := h.MessengerService.SendFile(c.Request().Context(), h.UsersService, userLogin, req.Receiver, req.FileName, fileStoragePath); err != nil {
 		go h.FilesService.DelFile(context.Background(), fileStoragePath)
 		c.Logger().Errorf("Send file ERR: %s", err)
 		resp := err.Error()
@@ -88,16 +86,11 @@ func (h *Handler) DelFile(c echo.Context, requestBody []byte, key string) error 
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) SetAvatar(c echo.Context, requestBody []byte, key string) error {
+func (h *Handler) SetAvatar(c echo.Context, requestBody []byte, key string, userLogin string) error {
 	var req SetAvatarRequest
 	if err := json.Unmarshal(requestBody, &req); err != nil {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.JSON(http.StatusBadRequest, "Invalid JSON")
-	}
-
-	if req.Login == "" {
-		h.Blocker.RegisterStrike(c.RealIP())
-		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
 	storageAvatarPath, err := h.FilesService.SaveAvatar(c.Request().Context(), req.Avatar)
@@ -110,7 +103,7 @@ func (h *Handler) SetAvatar(c echo.Context, requestBody []byte, key string) erro
 		return c.String(http.StatusInternalServerError, resp)
 	}
 
-	if err := h.UsersService.SetAvatar(c.Request().Context(), req.Login, storageAvatarPath); err != nil {
+	if err := h.UsersService.SetAvatar(c.Request().Context(), userLogin, storageAvatarPath); err != nil {
 		c.Logger().Error("Set avatar ERR %s", err)
 		resp := err.Error()
 		if key != "" {
@@ -119,7 +112,7 @@ func (h *Handler) SetAvatar(c echo.Context, requestBody []byte, key string) erro
 		return c.String(http.StatusBadRequest, resp)
 	}
 
-	c.Logger().Infof("Success save avatar by %s", req.Login)
+	c.Logger().Infof("Success save avatar by %s", userLogin)
 
 	return c.NoContent(http.StatusOK)
 }

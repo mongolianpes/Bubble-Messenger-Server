@@ -12,17 +12,8 @@ import (
 )
 
 type SendMessageRequest struct {
-	SenderLogin   string
 	ReceiverLogin string
 	Message       string
-}
-
-type CheckMessagesRequest struct {
-	Login string
-}
-
-type DelMessagesRequest struct {
-	Login string
 }
 
 const (
@@ -38,7 +29,7 @@ type RequestCheckMessages struct {
 
 var audioDialogsMu sync.RWMutex
 
-func (h *Handler) SendMessage(c echo.Context, requestBody []byte, key string) error {
+func (h *Handler) SendMessage(c echo.Context, requestBody []byte, key string, userLogin string) error {
 	var response string
 
 	var req SendMessageRequest
@@ -47,7 +38,7 @@ func (h *Handler) SendMessage(c echo.Context, requestBody []byte, key string) er
 		return c.JSON(http.StatusBadRequest, "Invalid JSON")
 	}
 
-	if req.SenderLogin == "" || req.ReceiverLogin == "" || req.Message == "" {
+	if req.ReceiverLogin == "" || req.Message == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
@@ -71,7 +62,7 @@ func (h *Handler) SendMessage(c echo.Context, requestBody []byte, key string) er
 		response = "Audio dialog stop"
 	}
 
-	if err := h.MessengerService.Send(c.Request().Context(), h.UsersService, req.SenderLogin, req.ReceiverLogin, req.Message); err != nil {
+	if err := h.MessengerService.Send(c.Request().Context(), h.UsersService, userLogin, req.ReceiverLogin, req.Message); err != nil {
 		resp := err.Error()
 		if key != "" {
 			resp, _ = crypto.StringEncrypt([]byte(resp), key)
@@ -89,19 +80,8 @@ func (h *Handler) SendMessage(c echo.Context, requestBody []byte, key string) er
 	}
 }
 
-func (h *Handler) CheckMessage(c echo.Context, requestBody []byte, key string) error {
-	var req CheckMessagesRequest
-	if err := json.Unmarshal(requestBody, &req); err != nil {
-		h.Blocker.RegisterStrike(c.RealIP())
-		return c.JSON(http.StatusBadRequest, "Invalid JSON")
-	}
-
-	if req.Login == "" {
-		h.Blocker.RegisterStrike(c.RealIP())
-		return c.String(http.StatusBadRequest, "Did not receive all server data")
-	}
-
-	newMessages, err := h.MessengerService.Check(c.Request().Context(), h.UsersService, req.Login)
+func (h *Handler) CheckMessage(c echo.Context, key string, userLogin string) error {
+	newMessages, err := h.MessengerService.Check(c.Request().Context(), h.UsersService, userLogin)
 	if err != nil {
 		c.Logger().Errorf("Check Messages ERR: %s", err)
 		resp := err.Error()
@@ -121,19 +101,8 @@ func (h *Handler) CheckMessage(c echo.Context, requestBody []byte, key string) e
 	return c.JSON(http.StatusOK, request)
 }
 
-func (h *Handler) DelMessages(c echo.Context, requestBody []byte, key string) error {
-	var req DelMessagesRequest
-	if err := json.Unmarshal(requestBody, &req); err != nil {
-		h.Blocker.RegisterStrike(c.RealIP())
-		return c.JSON(http.StatusBadRequest, "Invalid JSON")
-	}
-
-	if req.Login == "" {
-		h.Blocker.RegisterStrike(c.RealIP())
-		return c.String(http.StatusBadRequest, "Did not receive all server data")
-	}
-
-	if err := h.MessengerService.Del(c.Request().Context(), h.UsersService, req.Login); err != nil {
+func (h *Handler) DelMessages(c echo.Context, key string, userLogin string) error {
+	if err := h.MessengerService.Del(c.Request().Context(), h.UsersService, userLogin); err != nil {
 		c.Logger().Errorf("Del messages ERR: %s", err)
 		resp := err.Error()
 		if key != "" {
