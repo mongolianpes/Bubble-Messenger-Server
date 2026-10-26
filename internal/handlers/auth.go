@@ -112,6 +112,7 @@ func (h *Handler) Auth(c echo.Context) error {
 		cookie.Set(c, cookie.UserLogin, req.Login)
 		cookie.Set(c, cookie.UserName, userName)
 		cookie.Set(c, cookie.SessionID, key)
+		return c.NoContent(http.StatusOK)
 	}
 
 	c.Logger().Infof("Success auth %s. DeviceID %s, IP %s", req.Login, req.Device, c.RealIP())
