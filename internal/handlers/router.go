@@ -83,6 +83,12 @@ func (rh *TLSHandler) Router(c echo.Context) error {
 		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
 		return c.String(http.StatusInternalServerError, encryptResp)
 	}
+	req.Login, err = crypto.StringDecrypt(req.Login, key)
+	if err != nil {
+		c.Logger().Warnf("Decrypt error. DeviceID %s", req.Device)
+		encryptResp, _ := crypto.StringEncrypt([]byte("Decrypted error"), key)
+		return c.String(http.StatusInternalServerError, encryptResp)
+	}
 
 	URLPath := strings.TrimPrefix(c.Request().URL.Path, "/")
 	URLPath, err = crypto.StringDecrypt(URLPath, key)
