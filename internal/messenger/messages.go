@@ -33,8 +33,7 @@ func (c *Client) Send(ctx context.Context, usersService users.UsersService, send
 }
 
 func (c *Client) SendFile(ctx context.Context, usersService users.UsersService, senderLogin, receiverLogin, fileName, storagePath string) error {
-	const designationSendFile = "p"
-	textMessage := fmt.Sprintf("%s\\%s\\%s", designationSendFile, fileName, storagePath)
+	textMessage := fmt.Sprintf("%s%s\\%s", models.IdentificatorSendFile, fileName, storagePath)
 	return c.Send(ctx, usersService, senderLogin, receiverLogin, textMessage)
 }
 

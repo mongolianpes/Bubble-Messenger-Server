@@ -13,3 +13,12 @@ type Message struct {
 	Text        string
 	SendTime    time.Time
 }
+
+const (
+	IdentificatorInitAudioDialog           = "a\\"
+	IdentificatorStopAudioDialog           = "as\\"
+	IdentificatorSecondStepInitAudioDialog = "ai\\"
+	IdentificatorSendFile                  = "p\\"
+	IdentificatorInitDialog                = "i\\"
+	IdentificatorAnswerDialog              = "a\\"
+)

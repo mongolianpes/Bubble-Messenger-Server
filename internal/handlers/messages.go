@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"bubble/internal/crypto"
+	"bubble/internal/models"
 
 	"github.com/labstack/echo/v4"
 )
@@ -16,11 +17,7 @@ type SendMessageRequest struct {
 	Message       string
 }
 
-const (
-	identificatorForInitAudioDialog           = "a\\"
-	identificatorForStopAudioDialog           = "as\\"
-	identificatorForSecondStepInitAudioDialog = "ai\\"
-)
+const ()
 
 type RequestCheckMessages struct {
 	Gzip     bool
@@ -43,7 +40,7 @@ func (h *Handler) SendMessage(c echo.Context, requestBody []byte, key string, us
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
 
-	if req.Message == identificatorForInitAudioDialog {
+	if req.Message == models.IdentificatorInitAudioDialog {
 		dialogID, senderID, receiverID, err := h.AudioDialogService.CreateAudioDialog(c.Request().Context())
 		if err != nil {
 			c.Logger().Errorf("Create dialog ERR: %s", err)
@@ -54,12 +51,42 @@ func (h *Handler) SendMessage(c echo.Context, requestBody []byte, key string, us
 			return c.String(http.StatusInternalServerError, resp)
 		}
 
-		req.Message = identificatorForSecondStepInitAudioDialog + dialogID + "\\" + receiverID
+		req.Message = models.IdentificatorSecondStepInitAudioDialog + dialogID + "\\" + receiverID
 		response = dialogID + "\\" + senderID
-	} else if strings.HasPrefix(req.Message, identificatorForStopAudioDialog) {
-		dialogUUID := strings.Split(req.Message, "\\")[1]
-		h.AudioDialogService.DeleteAudioDialog(c.Request().Context(), dialogUUID)
-		response = "Audio dialog stop"
+	} else if strings.HasPrefix(req.Message, models.IdentificatorStopAudioDialog) {
+		splittedMessage := strings.Split(req.Message, "\\")
+		if len(splittedMessage) != 2 {
+			req.Message = "\\" + req.Message
+		} else {
+			dialogUUID := splittedMessage[1]
+			h.AudioDialogService.DeleteAudioDialog(c.Request().Context(), dialogUUID)
+			response = "Audio dialog stop"
+		}
+	}
+
+	if strings.HasPrefix(req.Message, models.IdentificatorSecondStepInitAudioDialog) {
+		splittedMessage := strings.Split(req.Message, "\\")
+		if len(splittedMessage) != 3 {
+			req.Message = "\\" + req.Message
+		}
+	}
+	if strings.HasPrefix(req.Message, models.IdentificatorSendFile) {
+		splittedMessage := strings.Split(req.Message, "\\")
+		if len(splittedMessage) != 3 {
+			req.Message = "\\" + req.Message
+		}
+	}
+	if strings.HasPrefix(req.Message, models.IdentificatorInitDialog) {
+		splittedMessage := strings.Split(req.Message, "\\")
+		if len(splittedMessage) != 2 {
+			req.Message = "\\" + req.Message
+		}
+	}
+	if strings.HasPrefix(req.Message, models.IdentificatorAnswerDialog) {
+		splittedMessage := strings.Split(req.Message, "\\")
+		if len(splittedMessage) != 2 {
+			req.Message = "\\" + req.Message
+		}
 	}
 
 	if err := h.MessengerService.Send(c.Request().Context(), h.UsersService, userLogin, req.ReceiverLogin, req.Message); err != nil {
