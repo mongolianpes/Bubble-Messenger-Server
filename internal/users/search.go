@@ -4,6 +4,7 @@ import (
 	"bubble/internal/models"
 	pb "bubble/internal/users/proto"
 	"context"
+	"fmt"
 )
 
 func (c *Client) Search(ctx context.Context, login string) ([]models.FindUser, error) {
@@ -28,7 +29,13 @@ func (c *Client) Search(ctx context.Context, login string) ([]models.FindUser, e
 
 func (c *Client) GetInfoByLogin(ctx context.Context, login string) (models.FindUser, error) {
 	result, err := c.Search(ctx, "@"+login)
-	return result[0], err
+	if err != nil {
+		return models.FindUser{}, err
+	}
+	if len(result) != 1 {
+		return models.FindUser{}, fmt.Errorf("Not found user by login %s", login)
+	}
+	return result[0], nil
 }
 
 func (c *Client) GetInfoByID(ctx context.Context, id int) (models.FindUser, error) {

@@ -13,11 +13,11 @@ import (
 func (c *Client) Send(ctx context.Context, usersService users.UsersService, senderLogin, receiverLogin, message string) error {
 	infoSender, err := usersService.GetInfoByLogin(ctx, senderLogin)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cant get info by login %s. ERR %s", senderLogin, err)
 	}
 	infoReceiver, err := usersService.GetInfoByLogin(ctx, receiverLogin)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cant get info by login %s. ERR %s", receiverLogin, err)
 	}
 
 	_, err = c.service.SendMessage(ctx, &pb.SendMessageRequest{
@@ -26,7 +26,7 @@ func (c *Client) Send(ctx context.Context, usersService users.UsersService, send
 		Text:       message,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to send message. Send ID: %v, Received ID: %v, ERR %s", infoSender.ID, infoReceiver.ID, err)
 	}
 
 	return nil

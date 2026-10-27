@@ -63,6 +63,7 @@ func (h *Handler) SendMessage(c echo.Context, requestBody []byte, key string, us
 	}
 
 	if err := h.MessengerService.Send(c.Request().Context(), h.UsersService, userLogin, req.ReceiverLogin, req.Message); err != nil {
+		c.Logger().Error("Send message ERR: %s", err)
 		resp := err.Error()
 		if key != "" {
 			resp, _ = crypto.StringEncrypt([]byte(resp), key)
