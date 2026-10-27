@@ -95,7 +95,7 @@ func (h *Handler) SetAvatar(c echo.Context, requestBody []byte, key string, user
 
 	storageAvatarPath, err := h.FilesService.SaveAvatar(c.Request().Context(), req.Avatar)
 	if err != nil {
-		c.Logger().Error("Save avatar ERR: %s", err)
+		c.Logger().Errorf("Save avatar ERR: %s", err)
 		resp := err.Error()
 		if key != "" {
 			resp, _ = crypto.StringEncrypt([]byte(resp), key)
