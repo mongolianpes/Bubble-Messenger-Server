@@ -34,6 +34,9 @@ Start on ports: 23099, 23098, 23097
 		e.Use(middleware.Recover())
 		e.Use(middleware.ContextTimeout(timeToProcessRequest))
 		e.HideBanner = true
+		e.GET("/", hand.PagesHandlers.HomePage)
+		e.GET("/auth", hand.PagesHandlers.AuthPage)
+		e.GET("/chats", hand.PagesHandlers.ChatsPage)
 		e.POST("/reg", hand.Handlers.Reg)
 		e.POST("/auth", hand.Handlers.Auth)
 		e.POST("/searchuser", hand.RouterSearchUser)
