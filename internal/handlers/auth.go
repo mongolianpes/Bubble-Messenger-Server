@@ -59,7 +59,7 @@ func (h *Handler) Reg(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "Invalid JSON")
 	}
 
-	if req.Login == "" || req.Name == "" || req.Password == "" || req.Device == "" {
+	if req.Login == "" || req.Name == "" || req.Password == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
@@ -89,7 +89,7 @@ func (h *Handler) Auth(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "Invalid JSON")
 	}
 
-	if req.Login == "" || req.Password == "" || req.Device == "" {
+	if req.Login == "" || req.Password == "" {
 		h.Blocker.RegisterStrike(c.RealIP())
 		return c.String(http.StatusBadRequest, "Did not receive all server data")
 	}
@@ -109,9 +109,9 @@ func (h *Handler) Auth(c echo.Context) error {
 	}
 
 	if req.Device == "" {
-		cookie.Set(c, cookie.UserLogin, req.Login)
-		cookie.Set(c, cookie.UserName, userName)
-		cookie.Set(c, cookie.SessionID, key)
+		cookie.Set(c, cookie.UserLogin, req.Login, false)
+		cookie.Set(c, cookie.UserName, userName, false)
+		cookie.Set(c, cookie.SessionID, key, true)
 		return c.NoContent(http.StatusOK)
 	}
 
