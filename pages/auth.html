@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Войти — Bubble</title>
+  <meta name="description" content="Вход и регистрация в мессенджере Bubble">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0a1628;
+      --bg-mid: #0f2140;
+      --accent: #3b9eff;
+      --accent-soft: rgba(59, 158, 255, 0.15);
+      --accent-glow: rgba(59, 158, 255, 0.4);
+      --text: #e8f1ff;
+      --text-muted: #9bb3d1;
+      --card: rgba(15, 33, 64, 0.8);
+      --border: rgba(59, 158, 255, 0.2);
+      --error: #f87171;
+      --error-bg: rgba(248, 113, 113, 0.12);
+      --error-border: rgba(248, 113, 113, 0.35);
+      --success: #4ade80;
+      --radius: 20px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .bubbles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(59, 158, 255, 0.25), rgba(59, 158, 255, 0.05));
+      border: 1px solid rgba(59, 158, 255, 0.15);
+      animation: float linear infinite;
+      will-change: transform;
+    }
+
+    .bubble::after {
+      content: '';
+      position: absolute;
+      top: 12%;
+      left: 18%;
+      width: 35%;
+      height: 20%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      filter: blur(2px);
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) scale(0.6);
+        opacity: 0;
+      }
+      10% { opacity: 0.7; }
+      90% { opacity: 0.5; }
+      100% {
+        transform: translateY(-20vh) scale(1);
+        opacity: 0;
+      }
+    }
+
+    header {
+      position: relative;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(10, 22, 40, 0.85);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b9eff, #1d6fd4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+      position: relative;
+    }
+
+    .logo-icon::after {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      width: 12px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .logo-icon span {
+      font-size: 1.1rem;
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .auth-header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.4rem;
+    }
+
+    .auth-header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .mode-switch {
+      display: flex;
+      background: rgba(10, 22, 40, 0.6);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 1.75rem;
+      border: 1px solid var(--border);
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, #3b9eff, #1d6fd4);
+      color: white;
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
+
+    .mode-btn:not(.active):hover {
+      color: var(--text);
+    }
+
+    .form-group {
+      margin-bottom: 1.15rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(10, 22, 40, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input::placeholder {
+      color: rgba(155, 179, 209, 0.5);
+    }
+
+    .form-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .form-group input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .error-box {
+      display: none;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.25rem;
+      color: var(--error);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .error-box.visible {
+      display: block;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.8rem 1.4rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b9eff, #1d6fd4);
+      color: white;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px var(--accent-glow);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .btn.loading .btn-spinner {
+      display: block;
+    }
+
+    .btn.loading .btn-text {
+      opacity: 0.85;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .auth-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .auth-footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .auth-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .form-panel {
+      display: none;
+    }
+
+    .form-panel.active {
+      display: block;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      transition: color 0.2s;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+    }
+
+    @media (max-width: 480px) {
+      .auth-card {
+        padding: 1.5rem;
+      }
+
+      .auth-header h1 {
+        font-size: 1.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bubbles" id="bubbles" aria-hidden="true"></div>
+
+  <header>
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <div class="logo-icon"><span>🫧</span></div>
+        Bubble
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <div class="auth-card">
+      <a href="/" class="back-link">← На главную</a>
+
+      <div class="auth-header">
+        <h1 id="formTitle">Вход</h1>
+        <p id="formSubtitle">Войдите в свой аккаунт Bubble</p>
+      </div>
+
+      <div class="mode-switch">
+        <button type="button" class="mode-btn active" id="modeLogin" data-mode="login">Вход</button>
+        <button type="button" class="mode-btn" id="modeReg" data-mode="reg">Регистрация</button>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <!-- Login form -->
+      <form class="form-panel active" id="loginForm" autocomplete="on">
+        <div class="form-group">
+          <label for="loginLogin">Логин</label>
+          <input type="text" id="loginLogin" name="login" placeholder="Ваш логин" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Пароль</label>
+          <input type="password" id="loginPassword" name="password" placeholder="Ваш пароль" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" id="loginSubmit">
+          <span class="btn-spinner"></span>
+          <span class="btn-text">Войти</span>
+        </button>
+      </form>
+
+      <!-- Register form -->
+      <form class="form-panel" id="regForm" autocomplete="on">
+        <div class="form-group">
+          <label for="regLogin">Логин</label>
+          <input type="text" id="regLogin" name="login" placeholder="Придумайте логин" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="regName">Имя</label>
+          <input type="text" id="regName" name="name" placeholder="Как вас зовут" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="regPassword">Пароль</label>
+          <input type="password" id="regPassword" name="password" placeholder="Придумайте пароль" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-primary" id="regSubmit">
+          <span class="btn-spinner"></span>
+          <span class="btn-text">Зарегистрироваться</span>
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        <span id="switchHint">Нет аккаунта?</span>
+        <a href="#" id="switchLink">Зарегистрироваться</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function createBubbles() {
+      const container = document.getElementById('bubbles');
+      const count = window.innerWidth < 600 ? 10 : 16;
+      for (let i = 0; i < count; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        const size = 18 + Math.random() * 70;
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.animationDuration = (12 + Math.random() * 18) + 's';
+        bubble.style.animationDelay = (Math.random() * 12) + 's';
+        container.appendChild(bubble);
+      }
+    })();
+
+    const modeLoginBtn = document.getElementById('modeLogin');
+    const modeRegBtn = document.getElementById('modeReg');
+    const loginForm = document.getElementById('loginForm');
+    const regForm = document.getElementById('regForm');
+    const formTitle = document.getElementById('formTitle');
+    const formSubtitle = document.getElementById('formSubtitle');
+    const switchHint = document.getElementById('switchHint');
+    const switchLink = document.getElementById('switchLink');
+    const errorBox = document.getElementById('errorBox');
+
+    let currentMode = 'login';
+
+    function setMode(mode) {
+      currentMode = mode;
+      errorBox.classList.remove('visible');
+      errorBox.textContent = '';
+
+      if (mode === 'login') {
+        modeLoginBtn.classList.add('active');
+        modeRegBtn.classList.remove('active');
+        loginForm.classList.add('active');
+        regForm.classList.remove('active');
+        formTitle.textContent = 'Вход';
+        formSubtitle.textContent = 'Войдите в свой аккаунт Bubble';
+        switchHint.textContent = 'Нет аккаунта?';
+        switchLink.textContent = 'Зарегистрироваться';
+        document.title = 'Войти — Bubble';
+      } else {
+        modeLoginBtn.classList.remove('active');
+        modeRegBtn.classList.add('active');
+        loginForm.classList.remove('active');
+        regForm.classList.add('active');
+        formTitle.textContent = 'Регистрация';
+        formSubtitle.textContent = 'Создайте аккаунт Bubble';
+        switchHint.textContent = 'Уже есть аккаунт?';
+        switchLink.textContent = 'Войти';
+        document.title = 'Регистрация — Bubble';
+      }
+    }
+
+    modeLoginBtn.addEventListener('click', () => setMode('login'));
+    modeRegBtn.addEventListener('click', () => setMode('reg'));
+    switchLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      setMode(currentMode === 'login' ? 'reg' : 'login');
+    });
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.classList.add('visible');
+    }
+
+    function hideError() {
+      errorBox.classList.remove('visible');
+      errorBox.textContent = '';
+    }
+
+    function setLoading(btn, loading) {
+      if (loading) {
+        btn.classList.add('loading');
+        btn.disabled = true;
+      } else {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+
+    async function parseErrorBody(response) {
+      try {
+        const text = await response.text();
+        if (!text) return `Ошибка ${response.status}`;
+        try {
+          const data = JSON.parse(text);
+          if (typeof data === 'string') return data;
+          if (data.message) return data.message;
+          if (data.error) return data.error;
+          return JSON.stringify(data);
+        } catch {
+          return text;
+        }
+      } catch {
+        return `Ошибка ${response.status}`;
+      }
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+
+      const login = document.getElementById('loginLogin').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('loginSubmit');
+
+      if (!login || !password) {
+        showError('Заполните все поля');
+        return;
+      }
+
+      setLoading(btn, true);
+
+      try {
+        const response = await fetch('/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            Login: login,
+            Password: password,
+          }),
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          window.location.href = '/chats';
+          return;
+        }
+
+        const msg = await parseErrorBody(response);
+        showError(msg || `Ошибка ${response.status}`);
+      } catch (err) {
+        showError('Не удалось связаться с сервером. Проверьте соединение.');
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+
+    regForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+
+      const login = document.getElementById('regLogin').value.trim();
+      const name = document.getElementById('regName').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const btn = document.getElementById('regSubmit');
+
+      if (!login || !name || !password) {
+        showError('Заполните все поля');
+        return;
+      }
+
+      setLoading(btn, true);
+
+      try {
+        const response = await fetch('/reg', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            Login: login,
+            Name: name,
+            Password: password,
+          }),
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          window.location.href = '/auth';
+          return;
+        }
+
+        const msg = await parseErrorBody(response);
+        showError(msg || `Ошибка ${response.status}`);
+      } catch (err) {
+        showError('Не удалось связаться с сервером. Проверьте соединение.');
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+
+    if (new URLSearchParams(window.location.search).get('mode') === 'reg') {
+      setMode('reg');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Чаты — Bubble</title>
+  <meta name="description" content="Чаты мессенджера Bubble">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0a1628;
+      --bg-mid: #0f2140;
+      --accent: #3b9eff;
+      --accent-soft: rgba(59, 158, 255, 0.15);
+      --accent-glow: rgba(59, 158, 255, 0.4);
+      --text: #e8f1ff;
+      --text-muted: #9bb3d1;
+      --card: rgba(15, 33, 64, 0.85);
+      --border: rgba(59, 158, 255, 0.2);
+      --error: #f87171;
+      --error-bg: rgba(248, 113, 113, 0.12);
+      --error-border: rgba(248, 113, 113, 0.35);
+      --success: #4ade80;
+      --radius: 16px;
+      --sidebar-w: 340px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* Bubbles */
+    .bubbles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(59, 158, 255, 0.2), rgba(59, 158, 255, 0.04));
+      border: 1px solid rgba(59, 158, 255, 0.12);
+      animation: float linear infinite;
+    }
+    .bubble::after {
+      content: '';
+      position: absolute;
+      top: 12%; left: 18%;
+      width: 35%; height: 20%;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      filter: blur(2px);
+    }
+    @keyframes float {
+      0% { transform: translateY(100vh) scale(0.6); opacity: 0; }
+      10% { opacity: 0.55; }
+      90% { opacity: 0.4; }
+      100% { transform: translateY(-15vh) scale(1); opacity: 0; }
+    }
+
+    /* Layout */
+    .app {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    /* Header */
+    header {
+      flex-shrink: 0;
+      backdrop-filter: blur(16px);
+      background: rgba(10, 22, 40, 0.9);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b9eff, #1d6fd4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--accent-glow);
+      position: relative;
+      font-size: 1rem;
+    }
+    .logo-icon::after {
+      content: '';
+      position: absolute;
+      top: 7px; left: 9px;
+      width: 10px; height: 7px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.35);
+    }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      position: relative;
+    }
+    .header-user .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      background: var(--accent-soft);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.35rem 0.9rem 0.35rem 0.4rem;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      user-select: none;
+    }
+    .header-user .user-chip:hover {
+      background: rgba(59, 158, 255, 0.25);
+      border-color: var(--accent);
+    }
+    .header-user .avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b9eff, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: white;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .header-user .avatar img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .header-user .meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+    .header-user .meta .name { font-weight: 600; font-size: 0.9rem; }
+    .header-user .meta .login { font-size: 0.75rem; color: var(--text-muted); }
+
+    .user-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 220px;
+      background: rgba(15, 33, 64, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.5rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      z-index: 200;
+    }
+    .user-menu.visible { display: block; }
+    .user-menu button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.7rem 0.9rem;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s;
+    }
+    .user-menu button:hover { background: var(--accent-soft); }
+    .user-menu button.danger { color: var(--error); }
+    .user-menu button.danger:hover { background: var(--error-bg); }
+    .user-menu .menu-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0.35rem 0;
+    }
+
+    .btn-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      font-size: 1rem;
+    }
+    .btn-icon:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Body */
+    .body {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      background: rgba(10, 22, 40, 0.55);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .sidebar-search {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .search-wrap {
+      position: relative;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 0.7rem 1rem 0.7rem 2.5rem;
+      background: rgba(10, 22, 40, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-wrap input::placeholder { color: rgba(155,179,209,0.5); }
+    .search-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+    .search-hint {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .search-hint code {
+      background: rgba(59,158,255,0.12);
+      color: var(--accent);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+    }
+
+    .search-results {
+      display: none;
+      border-bottom: 1px solid var(--border);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .search-results.visible { display: block; }
+    .search-results .item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.7rem 1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .search-results .item:hover { background: var(--accent-soft); }
+    .search-results .item .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b9eff, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: white;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .search-results .item .avatar img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .search-results .item .info { min-width: 0; }
+    .search-results .item .info .name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-results .item .info .login {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    .chat-list .empty {
+      padding: 2rem 1.25rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .chat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      border-bottom: 1px solid rgba(59,158,255,0.06);
+    }
+    .chat-item:hover { background: rgba(59,158,255,0.08); }
+    .chat-item.active {
+      background: var(--accent-soft);
+      border-left: 3px solid var(--accent);
+    }
+    .chat-item .avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b9eff, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1rem;
+      color: white;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .chat-item .avatar img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .chat-item .info {
+      flex: 1;
+      min-width: 0;
+    }
+    .chat-item .info .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 0.15rem;
+    }
+    .chat-item .info .top .name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-item .info .top .time {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .chat-item .info .preview {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-item .badge {
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Chat area */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      background: rgba(10, 22, 40, 0.35);
+    }
+    .chat-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      gap: 0.75rem;
+      padding: 2rem;
+      text-align: center;
+    }
+    .chat-empty .big-icon {
+      font-size: 3rem;
+      opacity: 0.5;
+    }
+    .chat-empty h2 {
+      font-size: 1.25rem;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .chat-empty p { font-size: 0.95rem; max-width: 320px; }
+
+    .chat-header {
+      flex-shrink: 0;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      background: rgba(10, 22, 40, 0.6);
+    }
+    .chat-header .avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b9eff, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .chat-header .avatar img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .chat-header .info .name {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    .chat-header .info .login {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .chat-header .back-mobile {
+      display: none;
+      width: 36px; height: 36px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 1.2rem;
+      cursor: pointer;
+      border-radius: 10px;
+    }
+    .chat-header .back-mobile:hover { background: var(--accent-soft); }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      min-height: 0;
+    }
+    .msg {
+      max-width: 75%;
+      padding: 0.7rem 1rem;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      position: relative;
+      word-break: break-word;
+    }
+    .msg.incoming {
+      align-self: flex-start;
+      background: rgba(15, 33, 64, 0.9);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+    .msg.outgoing {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(59,158,255,0.35), rgba(29,111,212,0.4));
+      border: 1px solid rgba(59,158,255,0.3);
+      border-bottom-right-radius: 4px;
+    }
+    .msg .time {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+      text-align: right;
+    }
+    .msg.file {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .msg.file .file-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .msg.file .file-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .msg.file .file-name {
+      font-weight: 500;
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+    .msg.file .file-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.35rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(10, 22, 40, 0.5);
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .msg.file .file-download:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+    .msg.system {
+      align-self: center;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      padding: 0.3rem 0.8rem;
+    }
+
+    .composer {
+      flex-shrink: 0;
+      padding: 0.85rem 1.25rem 1.1rem;
+      border-top: 1px solid var(--border);
+      background: rgba(10, 22, 40, 0.7);
+    }
+    .composer-error {
+      display: none;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error);
+      border-radius: 10px;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.6rem;
+    }
+    .composer-error.visible { display: block; }
+
+    .composer-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.6rem;
+    }
+    .composer-input-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .composer textarea {
+      width: 100%;
+      min-height: 44px;
+      max-height: 120px;
+      padding: 0.7rem 1rem;
+      background: rgba(10, 22, 40, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      resize: none;
+      outline: none;
+      line-height: 1.4;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .composer textarea::placeholder { color: rgba(155,179,209,0.5); }
+    .composer textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .composer-actions {
+      display: flex;
+      gap: 0.4rem;
+    }
+    .composer .btn-attach,
+    .composer .btn-send {
+      width: 44px; height: 44px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-attach {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .btn-attach:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-send {
+      background: linear-gradient(135deg, #3b9eff, #1d6fd4);
+      color: white;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .btn-send:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px var(--accent-glow);
+    }
+    .btn-send:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .file-preview {
+      display: none;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--accent-soft);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.55rem;
+      font-size: 0.85rem;
+    }
+    .file-preview.visible { display: flex; }
+    .file-preview .remove {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.2rem;
+    }
+    .file-preview .remove:hover { color: var(--error); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.75rem 1.25rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      z-index: 200;
+      transition: transform 0.3s ease;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      max-width: 90%;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { border-color: var(--error-border); color: var(--error); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        position: absolute;
+        inset: 0;
+        top: 53px;
+        z-index: 20;
+        transition: transform 0.25s ease;
+      }
+      .sidebar.hidden-mobile {
+        transform: translateX(-100%);
+        pointer-events: none;
+      }
+      .chat-area {
+        width: 100%;
+      }
+      .chat-area.hidden-mobile {
+        display: none;
+      }
+      .chat-header .back-mobile {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .msg { max-width: 88%; }
+      .header-user .meta { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bubbles" id="bubbles" aria-hidden="true"></div>
+
+  <div class="app">
+    <header>
+      <div class="header-inner">
+        <a href="/" class="logo">
+          <div class="logo-icon">🫧</div>
+          Bubble
+        </a>
+        <div class="header-user" id="headerUser">
+          <div class="user-chip" id="userChip" title="Меню профиля">
+            <div class="avatar" id="myAvatar">?</div>
+            <div class="meta">
+              <span class="name" id="myName">Пользователь</span>
+              <span class="login" id="myLogin"></span>
+            </div>
+          </div>
+          <div class="user-menu" id="userMenu">
+            <button type="button" id="menuChats">💬 Чаты</button>
+            <button type="button" id="menuSetAvatar">📷 Установить аватар</button>
+            <div class="menu-divider"></div>
+            <button type="button" class="danger" id="menuLogout">⏻ Выйти</button>
+          </div>
+          <input type="file" id="avatarInput" accept="image/*" hidden>
+        </div>
+      </div>
+    </header>
+
+    <div class="body">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-search">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Поиск пользователей..." autocomplete="off">
+          </div>
+          <p class="search-hint">
+            Найдите пользователя по точному логину. Начните с <code>@</code>, например <code>@ivan</code>
+          </p>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+        <div class="chat-list" id="chatList">
+          <div class="empty">Пока нет чатов.<br>Найдите пользователя через поиск.</div>
+        </div>
+      </aside>
+
+      <!-- Chat area -->
+      <section class="chat-area" id="chatArea">
+        <div class="chat-empty" id="chatEmpty">
+          <div class="big-icon">💬</div>
+          <h2>Выберите чат</h2>
+          <p>Выберите диалог слева или найдите пользователя по логину через поиск.</p>
+        </div>
+
+        <div id="chatActive" style="display:none; flex-direction:column; height:100%; min-height:0;">
+          <div class="chat-header">
+            <button class="back-mobile" id="backBtn" type="button">←</button>
+            <div class="avatar" id="chatAvatar">?</div>
+            <div class="info">
+              <div class="name" id="chatName">—</div>
+              <div class="login" id="chatLogin"></div>
+            </div>
+          </div>
+
+          <div class="messages" id="messages"></div>
+
+          <div class="composer">
+            <div class="composer-error" id="composerError"></div>
+            <div class="file-preview" id="filePreview">
+              <span>📎</span>
+              <span id="filePreviewName"></span>
+              <button type="button" class="remove" id="fileRemove">✕</button>
+            </div>
+            <div class="composer-row">
+              <div class="composer-input-wrap">
+                <textarea id="msgInput" rows="1" placeholder="Сообщение..." ></textarea>
+              </div>
+              <div class="composer-actions">
+                <button type="button" class="btn-attach" id="attachBtn" title="Прикрепить файл">📎</button>
+                <input type="file" id="fileInput" hidden>
+                <button type="button" class="btn-send" id="sendBtn" title="Отправить">➤</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ─── Config ───────────────────────────────────────────
+    const POLL_INTERVAL = 5000; // ms
+    const STORAGE_KEY = 'bubble_chats_v1';
+    const AVATAR_CACHE_KEY = 'bubble_avatars_v1';
+
+    // ─── Utils ────────────────────────────────────────────
+    function getCookie(name) {
+      if (!name || !document.cookie) return null;
+      const parts = document.cookie.split(';');
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i].trim();
+        const eq = part.indexOf('=');
+        if (eq === -1) continue;
+        const key = part.slice(0, eq).trim();
+        if (key === name) {
+          try { return decodeURIComponent(part.slice(eq + 1)); }
+          catch { return part.slice(eq + 1); }
+        }
+      }
+      const lower = name.toLowerCase();
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i].trim();
+        const eq = part.indexOf('=');
+        if (eq === -1) continue;
+        const key = part.slice(0, eq).trim();
+        if (key.toLowerCase() === lower) {
+          try { return decodeURIComponent(part.slice(eq + 1)); }
+          catch { return part.slice(eq + 1); }
+        }
+      }
+      return null;
+    }
+
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return btoa(binary);
+    }
+
+    function toast(text, isError = false) {
+      const el = document.getElementById('toast');
+      el.textContent = text;
+      el.classList.toggle('error', isError);
+      el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove('show'), 3200);
+    }
+
+    function formatTime(ts) {
+      const d = new Date(ts);
+      if (isNaN(d)) return '';
+      const now = new Date();
+      const sameDay = d.toDateString() === now.toDateString();
+      if (sameDay) {
+        return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      }
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) +
+        ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function base64ToUint8Array(b64) {
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+
+    // ─── Storage ──────────────────────────────────────────
+    // Structure:
+    // {
+    //   chats: {
+    //     [login]: {
+    //       login, name, lastText, lastTime, unread,
+    //       messages: [ { id, text, time, outgoing, isFile?, fileName? } ]
+    //     }
+    //   }
+    // }
+    function loadStore() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { chats: {} };
+      } catch {
+        return { chats: {} };
+      }
+    }
+
+    function saveStore(store) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+      } catch (e) {
+        console.warn('localStorage full or unavailable', e);
+      }
+    }
+
+    function loadAvatarCache() {
+      try {
+        return JSON.parse(localStorage.getItem(AVATAR_CACHE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveAvatarCache(cache) {
+      try {
+        localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(cache));
+      } catch {}
+    }
+
+    // ─── State ────────────────────────────────────────────
+    let store = loadStore();
+    let avatarCache = loadAvatarCache(); // login -> { path, url? }
+    let currentChatLogin = null;
+    let myLogin = getCookie('login') || '';
+    let myName = getCookie('name') || myLogin || 'Пользователь';
+    let pollTimer = null;
+    let searchTimer = null;
+    let pendingFile = null;
+
+    // ─── Header (profile chip + menu) ─────────────────────
+    document.getElementById('myName').textContent = myName;
+    document.getElementById('myLogin').textContent = myLogin ? '@' + myLogin : '';
+    document.getElementById('myAvatar').textContent = (myName || myLogin || '?').charAt(0).toUpperCase();
+
+    const userChip = document.getElementById('userChip');
+    const userMenu = document.getElementById('userMenu');
+    const avatarInput = document.getElementById('avatarInput');
+
+    userChip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userMenu.classList.toggle('visible');
+    });
+    document.addEventListener('click', (e) => {
+      if (!userMenu.contains(e.target) && !userChip.contains(e.target)) {
+        userMenu.classList.remove('visible');
+      }
+    });
+
+    document.getElementById('menuChats').addEventListener('click', () => {
+      userMenu.classList.remove('visible');
+      window.location.href = '/chats';
+    });
+
+    document.getElementById('menuLogout').addEventListener('click', () => {
+      document.cookie = 'session_id=; Max-Age=0; path=/';
+      document.cookie = 'name=; Max-Age=0; path=/';
+      document.cookie = 'login=; Max-Age=0; path=/';
+      try {
+        localStorage.removeItem('bubble_chats_v1');
+        localStorage.removeItem('bubble_avatars_v1');
+        sessionStorage.removeItem('bubble_last_chat');
+      } catch {}
+      window.location.href = '/';
+    });
+
+    document.getElementById('menuSetAvatar').addEventListener('click', () => {
+      userMenu.classList.remove('visible');
+      avatarInput.click();
+    });
+
+    avatarInput.addEventListener('change', async () => {
+      const file = avatarInput.files?.[0];
+      avatarInput.value = '';
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        toast('Выберите изображение', true);
+        return;
+      }
+      try {
+        const buf = await file.arrayBuffer();
+        const b64 = arrayBufferToBase64(buf);
+        const res = await fetch('/setavatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ avatar: b64 }),
+        });
+        if (res.ok) {
+          toast('Аватар обновлён');
+          const el = document.getElementById('myAvatar');
+          // Local preview immediately
+          const localUrl = URL.createObjectURL(file);
+          el.textContent = '';
+          const img = document.createElement('img');
+          img.src = localUrl;
+          img.alt = 'avatar';
+          el.appendChild(img);
+          // Bust HTTP + local path cache, then reload from server
+          avatarBust = Date.now();
+          if (myLogin) {
+            delete avatarCache[myLogin];
+            saveAvatarCache(avatarCache);
+            setTimeout(() => applyAvatar(el, myLogin, myName, true), 500);
+          }
+        } else {
+          let err = `Ошибка ${res.status}`;
+          try {
+            const t = await res.text();
+            try {
+              const j = JSON.parse(t);
+              err = typeof j === 'string' ? j : (j.message || j.error || t);
+            } catch { err = t || err; }
+          } catch {}
+          toast(err, true);
+        }
+      } catch {
+        toast('Не удалось загрузить аватар', true);
+      }
+    });
+
+    // ─── Avatars ──────────────────────────────────────────
+    let avatarBust = Date.now();
+
+    function avatarUrlFromPath(path) {
+      if (!path) return null;
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        const sep = path.includes('?') ? '&' : '?';
+        return path + sep + 't=' + avatarBust;
+      }
+      // Same host, port 8081
+      const host = location.hostname || 'localhost';
+      const p = path.startsWith('/') ? path : '/' + path;
+      return `http://${host}:8081${p}?t=${avatarBust}`;
+    }
+
+    function parseAvatarPath(text) {
+      if (!text) return null;
+      let path = String(text).trim();
+      try {
+        const j = JSON.parse(path);
+        if (typeof j === 'string') path = j;
+        else if (j && typeof j === 'object') {
+          path = j.path || j.Path || j.avatar || j.Avatar || j.url || j.URL || '';
+        }
+      } catch { /* plain string */ }
+      path = String(path || '').replace(/^"|"$/g, '').trim();
+      if (!path || path === 'null' || path === 'undefined') return null;
+      return path;
+    }
+
+    async function fetchAvatarPath(login, forceRefresh) {
+      if (!forceRefresh && avatarCache[login] && avatarCache[login].path) {
+        return avatarCache[login].path;
+      }
+      try {
+        const res = await fetch('/getavatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ LoginForSearch: login }),
+        });
+        if (!res.ok) return null;
+        const text = await res.text();
+        const path = parseAvatarPath(text);
+        if (!path) {
+          delete avatarCache[login];
+          saveAvatarCache(avatarCache);
+          return null;
+        }
+        avatarCache[login] = { path };
+        saveAvatarCache(avatarCache);
+        return path;
+      } catch {
+        return null;
+      }
+    }
+
+    async function applyAvatar(el, login, fallbackLetter, forceRefresh) {
+      if (!el || !login) return;
+      const letter = (fallbackLetter || login || '?').charAt(0).toUpperCase();
+
+      const path = await fetchAvatarPath(login, !!forceRefresh);
+      if (!path) {
+        // keep letter only if no image
+        if (!el.querySelector('img')) el.textContent = letter;
+        return;
+      }
+      const url = avatarUrlFromPath(path);
+      if (!url) {
+        if (!el.querySelector('img')) el.textContent = letter;
+        return;
+      }
+
+      const img = document.createElement('img');
+      img.alt = login;
+      img.onload = () => {
+        el.textContent = '';
+        el.appendChild(img);
+      };
+      img.onerror = () => {
+        // fallback: try same path on current origin (without forced :8081)
+        if (!img.dataset.triedOrigin) {
+          img.dataset.triedOrigin = '1';
+          const p = path.startsWith('/') ? path : '/' + path;
+          img.src = p + (p.includes('?') ? '&' : '?') + 't=' + avatarBust;
+          return;
+        }
+        img.remove();
+        if (!el.querySelector('img')) el.textContent = letter;
+      };
+      img.src = url;
+    }
+
+    // Load my avatar
+    if (myLogin) applyAvatar(document.getElementById('myAvatar'), myLogin, myName);
+
+    // ─── Render chat list ─────────────────────────────────
+    function getSortedChats() {
+      return Object.values(store.chats).sort((a, b) => (b.lastTime || 0) - (a.lastTime || 0));
+    }
+
+    function renderChatList() {
+      const list = document.getElementById('chatList');
+      const chats = getSortedChats();
+      if (!chats.length) {
+        list.innerHTML = '<div class="empty">Пока нет чатов.<br>Найдите пользователя через поиск.</div>';
+        return;
+      }
+      list.innerHTML = chats.map(c => {
+        const active = c.login === currentChatLogin ? 'active' : '';
+        const badge = c.unread > 0 ? `<span class="badge">${c.unread > 99 ? '99+' : c.unread}</span>` : '';
+        return `
+          <div class="chat-item ${active}" data-login="${escapeHtml(c.login)}">
+            <div class="avatar" data-avatar="${escapeHtml(c.login)}">${escapeHtml((c.name || c.login || '?').charAt(0).toUpperCase())}</div>
+            <div class="info">
+              <div class="top">
+                <span class="name">${escapeHtml(c.name || c.login)}</span>
+                <span class="time">${c.lastTime ? formatTime(c.lastTime) : ''}</span>
+              </div>
+              <div class="preview">${escapeHtml(c.lastText || '')}</div>
+            </div>
+            ${badge}
+          </div>`;
+      }).join('');
+
+      list.querySelectorAll('.chat-item').forEach(el => {
+        el.addEventListener('click', () => openChat(el.dataset.login));
+      });
+
+      // Avatars
+      list.querySelectorAll('[data-avatar]').forEach(el => {
+        applyAvatar(el, el.dataset.avatar, el.textContent);
+      });
+    }
+
+    // ─── Open chat ────────────────────────────────────────
+    function openChat(login) {
+      currentChatLogin = login;
+      if (!store.chats[login]) {
+        store.chats[login] = {
+          login,
+          name: login,
+          lastText: '',
+          lastTime: 0,
+          unread: 0,
+          messages: [],
+        };
+        saveStore(store);
+      }
+      store.chats[login].unread = 0;
+      saveStore(store);
+      try { sessionStorage.setItem('bubble_last_chat', login); } catch {}
+
+      document.getElementById('chatEmpty').style.display = 'none';
+      const active = document.getElementById('chatActive');
+      active.style.display = 'flex';
+
+      document.getElementById('chatName').textContent = store.chats[login].name || login;
+      document.getElementById('chatLogin').textContent = '@' + login;
+      applyAvatar(document.getElementById('chatAvatar'), login, store.chats[login].name || login);
+
+      renderMessages();
+      renderChatList();
+
+      // Mobile: hide sidebar
+      if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.add('hidden-mobile');
+        document.getElementById('chatArea').classList.remove('hidden-mobile');
+      }
+
+      document.getElementById('msgInput').focus();
+    }
+
+    function fileDownloadUrl(storagePath) {
+      if (!storagePath) return '#';
+      if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) return storagePath;
+      const host = location.hostname || 'localhost';
+      const p = storagePath.startsWith('/') ? storagePath : '/' + storagePath;
+      return `http://${host}:8081${p}`;
+    }
+
+    /** Parse incoming file marker: p\filename\storage/path */
+    function parseIncomingFileText(text) {
+      if (!text || typeof text !== 'string') return null;
+      // p\<filename>\<path>
+      if (!text.startsWith('p\\') && !text.startsWith('p/')) return null;
+      const rest = text.slice(2); // after "p\" or "p/"
+      // split by backslash; also allow if server sent single backslashes
+      let parts = rest.split('\\');
+      if (parts.length < 2) {
+        // try forward slash form p/name/path... (unlikely)
+        parts = rest.split('/');
+        if (parts.length < 2) return null;
+        const fileName = parts[0];
+        const storagePath = parts.slice(1).join('/');
+        if (!fileName || !storagePath) return null;
+        return { fileName, storagePath };
+      }
+      const fileName = parts[0];
+      const storagePath = parts.slice(1).join('\\').replace(/\\/g, '/');
+      if (!fileName || !storagePath) return null;
+      return { fileName, storagePath };
+    }
+
+    function renderMessages() {
+      const box = document.getElementById('messages');
+      const chat = store.chats[currentChatLogin];
+      if (!chat) {
+        box.innerHTML = '';
+        return;
+      }
+      box.innerHTML = chat.messages.map(m => {
+        if (m.isFile) {
+          const name = escapeHtml(m.fileName || m.text || 'Файл');
+          const dl = m.storagePath
+            ? `<a class="file-download" href="${escapeHtml(fileDownloadUrl(m.storagePath))}" target="_blank" rel="noopener" download="${name}">⬇ Скачать</a>`
+            : '';
+          return `
+            <div class="msg ${m.outgoing ? 'outgoing' : 'incoming'} file">
+              <div class="file-row">
+                <div class="file-icon">📄</div>
+                <div class="file-name">${name}</div>
+              </div>
+              ${dl}
+              <div class="time">${formatTime(m.time)}</div>
+            </div>`;
+        }
+        return `
+          <div class="msg ${m.outgoing ? 'outgoing' : 'incoming'}">
+            ${escapeHtml(m.text)}
+            <div class="time">${formatTime(m.time)}</div>
+          </div>`;
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // ─── Ensure chat exists ───────────────────────────────
+    function ensureChat(login, name) {
+      if (!store.chats[login]) {
+        store.chats[login] = {
+          login,
+          name: name || login,
+          lastText: '',
+          lastTime: 0,
+          unread: 0,
+          messages: [],
+        };
+      } else if (name && name !== login) {
+        store.chats[login].name = name;
+      }
+    }
+
+    function addMessage(login, msg) {
+      ensureChat(login, store.chats[login]?.name);
+      const chat = store.chats[login];
+      // Dedup by id if present
+      if (msg.id && chat.messages.some(m => m.id === msg.id)) return false;
+      chat.messages.push(msg);
+      chat.lastText = msg.isFile ? ('📎 ' + (msg.fileName || 'Файл')) : msg.text;
+      chat.lastTime = msg.time || Date.now();
+      if (login !== currentChatLogin && !msg.outgoing) {
+        chat.unread = (chat.unread || 0) + 1;
+      }
+      saveStore(store);
+      return true;
+    }
+
+    // ─── Poll /checkmessage ───────────────────────────────
+    async function checkMessages() {
+      try {
+        const res = await fetch('/checkmessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({}),
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        // Messages is []byte → base64 string in JSON
+        let raw = data.Messages || data.messages || '';
+        if (!raw) return;
+
+        let text;
+        if (typeof raw === 'string') {
+          // base64
+          try {
+            text = new TextDecoder().decode(base64ToUint8Array(raw));
+          } catch {
+            text = raw; // maybe already plain
+          }
+        } else if (Array.isArray(raw)) {
+          // unlikely but handle
+          text = raw.map(x => typeof x === 'string' ? x : JSON.stringify(x)).join('\n');
+        } else {
+          return;
+        }
+
+        // Optional gzip (user said always default/false)
+        // if (data.Gzip) { ... gunzip ... }
+
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        let changed = false;
+
+        for (const line of lines) {
+          let msgObj;
+          try {
+            msgObj = JSON.parse(line);
+          } catch {
+            // try simple "login|text|time" fallback
+            continue;
+          }
+          const sender = msgObj.SenderLogin || msgObj.senderLogin || msgObj.sender || '';
+          const textMsg = msgObj.Text || msgObj.text || '';
+          let time = msgObj.SendTime || msgObj.sendTime || msgObj.time || Date.now();
+          if (typeof time === 'string') time = new Date(time).getTime();
+          if (!sender) continue;
+
+          const id = msgObj.ID || msgObj.id || `${sender}_${time}_${textMsg.slice(0, 32)}`;
+          const fileInfo = parseIncomingFileText(textMsg);
+          let added;
+          if (fileInfo) {
+            added = addMessage(sender, {
+              id,
+              text: fileInfo.fileName,
+              fileName: fileInfo.fileName,
+              storagePath: fileInfo.storagePath,
+              time,
+              outgoing: false,
+              isFile: true,
+            });
+          } else {
+            added = addMessage(sender, {
+              id,
+              text: textMsg,
+              time,
+              outgoing: false,
+            });
+          }
+          if (added) changed = true;
+        }
+
+        if (changed) {
+          renderChatList();
+          if (currentChatLogin) renderMessages();
+        }
+      } catch (e) {
+        console.warn('checkmessage failed', e);
+      }
+    }
+
+    function startPolling() {
+      checkMessages();
+      pollTimer = setInterval(checkMessages, POLL_INTERVAL);
+    }
+
+    // ─── Search ───────────────────────────────────────────
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      const q = searchInput.value.trim();
+      if (!q) {
+        searchResults.classList.remove('visible');
+        searchResults.innerHTML = '';
+        return;
+      }
+      searchTimer = setTimeout(() => doSearch(q), 350);
+    });
+
+    async function doSearch(query) {
+      // Support @login
+      let loginForSearch = query;
+      if (loginForSearch.startsWith('@')) loginForSearch = loginForSearch.slice(1);
+      if (!loginForSearch) {
+        searchResults.classList.remove('visible');
+        return;
+      }
+
+      try {
+        const res = await fetch('/searchuser', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ LoginForSearch: loginForSearch }),
+        });
+        if (!res.ok) {
+          searchResults.innerHTML = '<div class="item" style="color:var(--text-muted);cursor:default">Ничего не найдено</div>';
+          searchResults.classList.add('visible');
+          return;
+        }
+        let list = await res.json();
+        if (!Array.isArray(list)) list = list ? [list] : [];
+
+        if (!list.length) {
+          searchResults.innerHTML = '<div class="item" style="color:var(--text-muted);cursor:default">Ничего не найдено</div>';
+          searchResults.classList.add('visible');
+          return;
+        }
+
+        searchResults.innerHTML = list.map(u => {
+          const login = u.Login || u.login || '';
+          const name = u.Name || u.name || login;
+          return `
+            <div class="item" data-login="${escapeHtml(login)}" data-name="${escapeHtml(name)}">
+              <div class="avatar" data-avatar="${escapeHtml(login)}">${escapeHtml((name || login).charAt(0).toUpperCase())}</div>
+              <div class="info">
+                <div class="name">${escapeHtml(name)}</div>
+                <div class="login">@${escapeHtml(login)}</div>
+              </div>
+            </div>`;
+        }).join('');
+        searchResults.classList.add('visible');
+
+        searchResults.querySelectorAll('.item[data-login]').forEach(el => {
+          el.addEventListener('click', () => {
+            const login = el.dataset.login;
+            const name = el.dataset.name;
+            ensureChat(login, name);
+            saveStore(store);
+            searchInput.value = '';
+            searchResults.classList.remove('visible');
+            searchResults.innerHTML = '';
+            openChat(login);
+          });
+        });
+
+        searchResults.querySelectorAll('[data-avatar]').forEach(el => {
+          applyAvatar(el, el.dataset.avatar, el.textContent);
+        });
+      } catch {
+        searchResults.innerHTML = '<div class="item" style="color:var(--error);cursor:default">Ошибка поиска</div>';
+        searchResults.classList.add('visible');
+      }
+    }
+
+    // ─── Send message ─────────────────────────────────────
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const composerError = document.getElementById('composerError');
+
+    function showComposerError(text) {
+      composerError.textContent = text;
+      composerError.classList.add('visible');
+    }
+    function hideComposerError() {
+      composerError.classList.remove('visible');
+      composerError.textContent = '';
+    }
+
+    async function sendMessage() {
+      if (!currentChatLogin) return;
+      hideComposerError();
+
+      const text = msgInput.value.trim();
+      if (pendingFile) {
+        await sendFile();
+        return;
+      }
+      if (!text) return;
+
+      sendBtn.disabled = true;
+      try {
+        const res = await fetch('/sendmessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            ReceiverLogin: currentChatLogin,
+            Message: text,
+          }),
+        });
+
+        if (res.ok) {
+          const time = Date.now();
+          addMessage(currentChatLogin, {
+            id: `out_${time}_${text.slice(0, 16)}`,
+            text,
+            time,
+            outgoing: true,
+          });
+          msgInput.value = '';
+          msgInput.style.height = 'auto';
+          renderMessages();
+          renderChatList();
+        } else {
+          let errText = `Ошибка ${res.status}`;
+          try {
+            const t = await res.text();
+            try {
+              const j = JSON.parse(t);
+              errText = typeof j === 'string' ? j : (j.message || j.error || t);
+            } catch {
+              errText = t || errText;
+            }
+          } catch {}
+          showComposerError(errText);
+        }
+      } catch {
+        showComposerError('Не удалось отправить сообщение');
+      } finally {
+        sendBtn.disabled = false;
+        msgInput.focus();
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    msgInput.addEventListener('input', () => {
+      msgInput.style.height = 'auto';
+      msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
+    });
+
+    // ─── File attach / send ───────────────────────────────
+    const fileInput = document.getElementById('fileInput');
+    const attachBtn = document.getElementById('attachBtn');
+    const filePreview = document.getElementById('filePreview');
+    const filePreviewName = document.getElementById('filePreviewName');
+    const fileRemove = document.getElementById('fileRemove');
+
+    attachBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files?.[0];
+      if (!f) return;
+      pendingFile = f;
+      filePreviewName.textContent = f.name;
+      filePreview.classList.add('visible');
+    });
+    fileRemove.addEventListener('click', () => {
+      pendingFile = null;
+      fileInput.value = '';
+      filePreview.classList.remove('visible');
+    });
+
+    async function sendFile() {
+      if (!currentChatLogin || !pendingFile) return;
+      hideComposerError();
+      sendBtn.disabled = true;
+
+      try {
+        const buf = await pendingFile.arrayBuffer();
+        const b64 = arrayBufferToBase64(buf);
+
+        const res = await fetch('/sendfile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            Receiver: currentChatLogin,
+            FileName: pendingFile.name,
+            File: b64,
+          }),
+        });
+
+        if (res.ok) {
+          const time = Date.now();
+          addMessage(currentChatLogin, {
+            id: `file_${time}`,
+            text: pendingFile.name,
+            fileName: pendingFile.name,
+            time,
+            outgoing: true,
+            isFile: true,
+          });
+          pendingFile = null;
+          fileInput.value = '';
+          filePreview.classList.remove('visible');
+          msgInput.value = '';
+          renderMessages();
+          renderChatList();
+          toast('Файл отправлен');
+        } else {
+          let errText = `Ошибка ${res.status}`;
+          try {
+            const t = await res.text();
+            try {
+              const j = JSON.parse(t);
+              errText = typeof j === 'string' ? j : (j.message || j.error || t);
+            } catch {
+              errText = t || errText;
+            }
+          } catch {}
+          showComposerError(errText);
+        }
+      } catch (e) {
+        showComposerError('Не удалось отправить файл');
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    // ─── Mobile back ──────────────────────────────────────
+    document.getElementById('backBtn').addEventListener('click', () => {
+      currentChatLogin = null;
+      document.getElementById('chatActive').style.display = 'none';
+      document.getElementById('chatEmpty').style.display = 'flex';
+      document.getElementById('sidebar').classList.remove('hidden-mobile');
+      renderChatList();
+    });
+
+    // ─── Bubbles ──────────────────────────────────────────
+    (function () {
+      const container = document.getElementById('bubbles');
+      const count = window.innerWidth < 700 ? 8 : 14;
+      for (let i = 0; i < count; i++) {
+        const b = document.createElement('div');
+        b.className = 'bubble';
+        const size = 16 + Math.random() * 60;
+        b.style.width = size + 'px';
+        b.style.height = size + 'px';
+        b.style.left = Math.random() * 100 + '%';
+        b.style.animationDuration = (14 + Math.random() * 18) + 's';
+        b.style.animationDelay = (Math.random() * 12) + 's';
+        container.appendChild(b);
+      }
+    })();
+
+    // ─── Init ─────────────────────────────────────────────
+    renderChatList();
+    startPolling();
+
+    // Restore last open chat
+    const last = sessionStorage.getItem('bubble_last_chat');
+    if (last && store.chats[last]) {
+      openChat(last);
+    }
+  </script>
+</body>
+</html>

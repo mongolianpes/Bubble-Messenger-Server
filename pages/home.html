@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bubble — Мессенджер с открытым исходным кодом</title>
+  <meta name="description" content="Bubble — открытый мессенджер, который отлично работает на нестабильном интернете. Минимальное хранение данных, собственное шифрование и прозрачность.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0a1628;
+      --bg-mid: #0f2140;
+      --accent: #3b9eff;
+      --accent-soft: rgba(59, 158, 255, 0.15);
+      --accent-glow: rgba(59, 158, 255, 0.4);
+      --text: #e8f1ff;
+      --text-muted: #9bb3d1;
+      --card: rgba(15, 33, 64, 0.75);
+      --border: rgba(59, 158, 255, 0.2);
+      --success: #4ade80;
+      --error: #f87171;
+      --error-bg: rgba(248, 113, 113, 0.12);
+      --error-border: rgba(248, 113, 113, 0.35);
+      --radius: 20px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .bubbles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(59, 158, 255, 0.25), rgba(59, 158, 255, 0.05));
+      border: 1px solid rgba(59, 158, 255, 0.15);
+      animation: float linear infinite;
+      will-change: transform;
+    }
+
+    .bubble::after {
+      content: '';
+      position: absolute;
+      top: 12%;
+      left: 18%;
+      width: 35%;
+      height: 20%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      filter: blur(2px);
+    }
+
+    @keyframes float {
+      0% { transform: translateY(100vh) scale(0.6); opacity: 0; }
+      10% { opacity: 0.7; }
+      90% { opacity: 0.5; }
+      100% { transform: translateY(-20vh) scale(1); opacity: 0; }
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(10, 22, 40, 0.85);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b9eff, #1d6fd4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+      position: relative;
+    }
+
+    .logo-icon::after {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      width: 12px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .logo-icon span { font-size: 1.1rem; }
+
+    .auth-area {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: relative;
+    }
+
+    .user-info {
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--accent-soft);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.4rem 1rem 0.4rem 0.5rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      user-select: none;
+    }
+
+    .user-info.visible { display: flex; }
+
+    .user-info:hover {
+      background: rgba(59, 158, 255, 0.25);
+      border-color: var(--accent);
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b9eff, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: white;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .user-name { font-weight: 600; color: var(--text); }
+    .user-login { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* User popup menu */
+    .user-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 220px;
+      background: rgba(15, 33, 64, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.5rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      z-index: 200;
+    }
+
+    .user-menu.visible { display: block; }
+
+    .user-menu button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.7rem 0.9rem;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s;
+    }
+
+    .user-menu button:hover {
+      background: var(--accent-soft);
+    }
+
+    .user-menu button.danger { color: var(--error); }
+    .user-menu button.danger:hover {
+      background: var(--error-bg);
+    }
+
+    .user-menu .menu-error {
+      display: none;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.8rem;
+      color: var(--error);
+    }
+
+    .user-menu .menu-error.visible { display: block; }
+
+    .user-menu .menu-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0.35rem 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.4rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b9eff, #1d6fd4);
+      color: white;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px var(--accent-glow);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 3rem 0 4rem;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent-soft);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 3.6rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #e8f1ff 0%, #3b9eff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto 2rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    section { margin-bottom: 3.5rem; }
+
+    .section-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .section-title .icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.2s;
+    }
+
+    .card:hover { border-color: rgba(59, 158, 255, 0.4); }
+
+    .card p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .card p:last-child { margin-bottom: 0; }
+    .card strong { color: var(--text); }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      backdrop-filter: blur(12px);
+    }
+
+    .feature-card .feat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .link-card {
+      flex: 1;
+      min-width: 240px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+
+    .link-card:hover {
+      border-color: var(--accent);
+      background: rgba(59, 158, 255, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .link-card .gh-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #161b22;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .link-card .gh-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: white;
+    }
+
+    .link-card .link-text strong {
+      display: block;
+      margin-bottom: 0.15rem;
+    }
+
+    .link-card .link-text span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .step {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b9eff, #1d6fd4);
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-content h4 {
+      margin-bottom: 0.3rem;
+      font-size: 1rem;
+    }
+
+    .step-content p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .step-content code {
+      background: rgba(59, 158, 255, 0.12);
+      color: var(--accent);
+      padding: 0.15rem 0.4rem;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .secure-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .secure-list li {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      color: var(--text-muted);
+    }
+
+    .secure-list li::before {
+      content: '●';
+      color: var(--accent);
+      font-size: 0.7rem;
+      margin-top: 0.35rem;
+      flex-shrink: 0;
+    }
+
+    .secure-list strong { color: var(--text); }
+
+    .note {
+      margin-top: 1.5rem;
+      padding: 1rem 1.25rem;
+      background: rgba(74, 222, 128, 0.08);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+      border-radius: 14px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .note a {
+      color: var(--success);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .note a:hover { text-decoration: underline; }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.75rem 1.25rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      z-index: 300;
+      transition: transform 0.3s ease;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      max-width: 90%;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { border-color: var(--error-border); color: var(--error); }
+
+    @media (max-width: 600px) {
+      .header-inner { padding: 0.85rem 1rem; }
+      .hero { padding: 2rem 0 3rem; }
+      .user-info { padding: 0.35rem 0.75rem 0.35rem 0.4rem; }
+      .user-meta { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bubbles" id="bubbles" aria-hidden="true"></div>
+
+  <header>
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <div class="logo-icon"><span>🫧</span></div>
+        Bubble
+      </a>
+
+      <div class="auth-area">
+        <div class="user-info" id="userInfo" title="Меню профиля">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div class="user-meta">
+            <span class="user-name" id="userName"></span>
+            <span class="user-login" id="userLogin"></span>
+          </div>
+        </div>
+
+        <div class="user-menu" id="userMenu">
+          <button type="button" id="menuChats">💬 Чаты</button>
+          <button type="button" id="menuSetAvatar">📷 Установить аватар</button>
+          <div class="menu-divider"></div>
+          <button type="button" class="danger" id="menuLogout">⏻ Выйти</button>
+          <div class="menu-error" id="menuError"></div>
+        </div>
+
+        <input type="file" id="avatarInput" accept="image/*" hidden>
+
+        <a href="/auth" class="btn btn-primary" id="loginBtn">Войти</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-badge">
+        <span>🫧</span> Открытый исходный код
+      </div>
+      <h1>Мессенджер Bubble</h1>
+      <p>
+        Лёгкий и безопасный мессенджер, созданный для работы даже при нестабильном интернете.
+        Минимум данных на сервере, собственное шифрование и полная прозрачность.
+      </p>
+      <div class="hero-actions">
+        <a href="/auth" class="btn btn-primary" id="heroAuthBtn">Начать общение</a>
+        <a href="#opensource" class="btn btn-outline">Исходный код</a>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">
+        <span class="icon">✨</span>
+        Почему Bubble
+      </h2>
+      <div class="features">
+        <div class="feature-card">
+          <div class="feat-icon">📶</div>
+          <h3>Работает на нестабильном интернете</h3>
+          <p>
+            Клиент не держит постоянное TLS-соединение. Ключи шифрования обмениваются один раз
+            на длительный срок. Запрос отправляется — и сразу приходит ответ, которым можно пользоваться.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">🗑️</div>
+          <h3>Данные не задерживаются на сервере</h3>
+          <p>
+            Информация удаляется клиентом сразу в следующем запросе, как только он её получил.
+            Сообщения стираются только после подтверждённой доставки до клиента.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">🔒</div>
+          <h3>Собственное шифрование</h3>
+          <p>
+            На нестандартных портах используются собственные механизмы шифрования пути URL
+            и тела запроса с защитой от повторной отправки.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="opensource">
+      <h2 class="section-title">
+        <span class="icon">📂</span>
+        Открытый исходный код
+      </h2>
+      <div class="card">
+        <p>
+          Bubble — проект с <strong>открытым исходным кодом</strong> как клиента, так и сайта.
+          Вы можете изучить, как именно работает обмен данными и что отправляется на сервер.
+        </p>
+        <div class="links">
+          <a href="https://github.com/mongolianpes/Bubble-Messenger-Server" target="_blank" rel="noopener" class="link-card">
+            <div class="gh-icon">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            </div>
+            <div class="link-text">
+              <strong>Серверная часть</strong>
+              <span>Bubble-Messenger-Server</span>
+            </div>
+          </a>
+          <a href="https://github.com/mongolianpes/Bubble-Messenger-Client" target="_blank" rel="noopener" class="link-card">
+            <div class="gh-icon">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            </div>
+            <div class="link-text">
+              <strong>Клиент (мобильные устройства)</strong>
+              <span>Открыта часть, отправляющая запросы на сервер</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">
+        <span class="icon">🛡️</span>
+        Транспортная безопасность
+      </h2>
+      <div class="card" style="margin-bottom: 1.25rem;">
+        <p>
+          При обращении через <strong>нестандартные порты</strong> (именно к ним обращается клиент)
+          применяются собственные механизмы шифрования.
+        </p>
+      </div>
+
+      <h3 style="font-size: 1.15rem; margin-bottom: 1rem; color: var(--text-muted);">Обмен ключами и аутентификация</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Обмен секретом</h4>
+            <p>
+              Хэндлер <code>/exchangekey</code> позволяет обменяться с сервером общим секретом
+              по алгоритму <strong>ECDH</strong>.
+            </p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Регистрация</h4>
+            <p>
+              Сразу после обмена используется хэндлер <code>/reg</code>
+              (если пользователь ещё не зарегистрирован).
+            </p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Авторизация</h4>
+            <p>
+              Затем <code>/auth</code> — для получения долгосрочного общего ключа,
+              которым будет шифроваться вся передаваемая информация.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">
+        <span class="icon">🔑</span>
+        Как работает шифрование
+      </h2>
+      <div class="card">
+        <p>Механизмы шифруют:</p>
+        <ul class="secure-list" style="margin: 0.75rem 0 1.25rem;">
+          <li><strong>путь в URL</strong></li>
+          <li><strong>тело запроса</strong></li>
+        </ul>
+
+        <p>Дополнительно они защищают от повторной отправки запросов злоумышленником:</p>
+        <ul class="secure-list" style="margin-top: 0.75rem;">
+          <li>в каждом запросе передаётся <strong>время отправки</strong> и <strong>случайная строка</strong></li>
+          <li>сервер сохраняет случайную строку запроса на <strong>30 секунд</strong> и отклоняет любые повторные запросы с этой же строкой в течение этого времени</li>
+          <li>если с момента отправки прошло слишком много времени, запрос также отклоняется</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">
+        <span class="icon">👁️</span>
+        Что видит злоумышленник
+      </h2>
+      <div class="card">
+        <p>
+          Злоумышленник видит только то же, что и при обычном использовании HTTPS, плюс:
+        </p>
+        <ul class="secure-list" style="margin-top: 0.75rem;">
+          <li>информацию об устройстве <strong>(в захэшированном виде)</strong></li>
+          <li>остальные данные в зашифрованном виде: логин, пароль, тело запроса, время отправки, случайную строку</li>
+        </ul>
+      </div>
+
+      <div class="note">
+        Подробнее о протоколах, реализации и архитектуре можно узнать на
+        <a href="https://github.com/mongolianpes/Bubble-Messenger-Server" target="_blank" rel="noopener">GitHub серверной части</a>
+        и
+        <a href="https://github.com/mongolianpes/Bubble-Messenger-Client" target="_blank" rel="noopener">клиентской части</a>.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Bubble Messenger · Открытый исходный код ·
+      <a href="https://github.com/mongolianpes/Bubble-Messenger-Server" target="_blank" rel="noopener">Server</a>
+      ·
+      <a href="https://github.com/mongolianpes/Bubble-Messenger-Client" target="_blank" rel="noopener">Client</a>
+    </p>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Bubbles
+    (function createBubbles() {
+      const container = document.getElementById('bubbles');
+      const count = window.innerWidth < 600 ? 12 : 20;
+      for (let i = 0; i < count; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        const size = 20 + Math.random() * 80;
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.left = Math.random() * 100 + '%';
+        bubble.style.animationDuration = (12 + Math.random() * 20) + 's';
+        bubble.style.animationDelay = (Math.random() * 15) + 's';
+        container.appendChild(bubble);
+      }
+    })();
+
+    function getCookie(name) {
+      if (!name || !document.cookie) return null;
+      const parts = document.cookie.split(';');
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i].trim();
+        const eq = part.indexOf('=');
+        if (eq === -1) continue;
+        const key = part.slice(0, eq).trim();
+        if (key === name) {
+          try {
+            return decodeURIComponent(part.slice(eq + 1));
+          } catch {
+            return part.slice(eq + 1);
+          }
+        }
+      }
+      // fallback: case-insensitive
+      const lower = name.toLowerCase();
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i].trim();
+        const eq = part.indexOf('=');
+        if (eq === -1) continue;
+        const key = part.slice(0, eq).trim();
+        if (key.toLowerCase() === lower) {
+          try {
+            return decodeURIComponent(part.slice(eq + 1));
+          } catch {
+            return part.slice(eq + 1);
+          }
+        }
+      }
+      return null;
+    }
+
+    function toast(text, isError = false) {
+      const el = document.getElementById('toast');
+      el.textContent = text;
+      el.classList.toggle('error', isError);
+      el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return btoa(binary);
+    }
+
+    let avatarBust = Date.now();
+
+    function avatarUrlFromPath(path) {
+      if (!path) return null;
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        const sep = path.includes('?') ? '&' : '?';
+        return path + sep + 't=' + avatarBust;
+      }
+      const host = location.hostname || 'localhost';
+      const p = path.startsWith('/') ? path : '/' + path;
+      return `http://${host}:8081${p}?t=${avatarBust}`;
+    }
+
+    function parseAvatarPath(text) {
+      if (!text) return null;
+      let path = String(text).trim();
+      try {
+        const j = JSON.parse(path);
+        if (typeof j === 'string') path = j;
+        else if (j && typeof j === 'object') {
+          path = j.path || j.Path || j.avatar || j.Avatar || j.url || j.URL || '';
+        }
+      } catch {}
+      path = String(path || '').replace(/^"|"$/g, '').trim();
+      if (!path || path === 'null' || path === 'undefined') return null;
+      return path;
+    }
+
+    // Auth UI
+    const userInfo = document.getElementById('userInfo');
+    const userMenu = document.getElementById('userMenu');
+    const loginBtn = document.getElementById('loginBtn');
+    const userAvatar = document.getElementById('userAvatar');
+    const userName = document.getElementById('userName');
+    const userLogin = document.getElementById('userLogin');
+    const menuError = document.getElementById('menuError');
+    const avatarInput = document.getElementById('avatarInput');
+    const heroAuthBtn = document.getElementById('heroAuthBtn');
+
+    let myLogin = '';
+
+    async function loadMyAvatar(login, forceRefresh) {
+      if (!login) return;
+      try {
+        const res = await fetch('/getavatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ LoginForSearch: login }),
+        });
+        if (!res.ok) return;
+        const text = await res.text();
+        const path = parseAvatarPath(text);
+        if (!path) return;
+        const url = avatarUrlFromPath(path);
+        if (!url) return;
+        const img = document.createElement('img');
+        img.alt = login;
+        img.onload = () => {
+          userAvatar.textContent = '';
+          userAvatar.appendChild(img);
+        };
+        img.onerror = () => {
+          if (!img.dataset.triedOrigin) {
+            img.dataset.triedOrigin = '1';
+            const p = path.startsWith('/') ? path : '/' + path;
+            img.src = p + (p.includes('?') ? '&' : '?') + 't=' + avatarBust;
+            return;
+          }
+          img.remove();
+        };
+        img.src = url;
+      } catch {}
+    }
+
+    (function checkAuth() {
+      // session_id часто HttpOnly — JS его не читает. Для UI достаточно name/login.
+      const sessionId = getCookie('session_id');
+      const name = getCookie('name');
+      const login = getCookie('login');
+      myLogin = login || '';
+
+      const isLoggedIn = !!(login || name || sessionId);
+
+      if (isLoggedIn) {
+        userInfo.classList.add('visible');
+        userName.textContent = name || login || 'Пользователь';
+        userLogin.textContent = login ? '@' + login : '';
+        userAvatar.textContent = (name || login || '?').charAt(0).toUpperCase();
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (heroAuthBtn) {
+          heroAuthBtn.href = '/chats';
+          heroAuthBtn.textContent = 'Перейти в чаты';
+        }
+        if (login) loadMyAvatar(login);
+      } else {
+        userInfo.classList.remove('visible');
+        if (loginBtn) loginBtn.style.display = '';
+      }
+    })();
+
+    // Toggle menu
+    userInfo.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userMenu.classList.toggle('visible');
+      menuError.classList.remove('visible');
+      menuError.textContent = '';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!userMenu.contains(e.target) && !userInfo.contains(e.target)) {
+        userMenu.classList.remove('visible');
+      }
+    });
+
+    // Chats
+    document.getElementById('menuChats').addEventListener('click', () => {
+      window.location.href = '/chats';
+    });
+
+    // Logout — clear cookies + local data
+    document.getElementById('menuLogout').addEventListener('click', () => {
+      document.cookie = 'session_id=; Max-Age=0; path=/';
+      document.cookie = 'name=; Max-Age=0; path=/';
+      document.cookie = 'login=; Max-Age=0; path=/';
+      try {
+        localStorage.removeItem('bubble_chats_v1');
+        localStorage.removeItem('bubble_avatars_v1');
+        sessionStorage.removeItem('bubble_last_chat');
+      } catch {}
+      window.location.href = '/';
+    });
+
+    // Set avatar
+    document.getElementById('menuSetAvatar').addEventListener('click', () => {
+      userMenu.classList.remove('visible');
+      avatarInput.click();
+    });
+
+    avatarInput.addEventListener('change', async () => {
+      const file = avatarInput.files?.[0];
+      avatarInput.value = '';
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        toast('Выберите изображение', true);
+        return;
+      }
+
+      try {
+        const buf = await file.arrayBuffer();
+        const b64 = arrayBufferToBase64(buf);
+
+        const res = await fetch('/setavatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ avatar: b64 }),
+        });
+
+        if (res.ok) {
+          toast('Аватар обновлён');
+          // Local preview immediately
+          const localUrl = URL.createObjectURL(file);
+          userAvatar.textContent = '';
+          const img = document.createElement('img');
+          img.src = localUrl;
+          img.alt = 'avatar';
+          userAvatar.appendChild(img);
+          // Bust cache and reload from server
+          avatarBust = Date.now();
+          if (myLogin) setTimeout(() => loadMyAvatar(myLogin, true), 500);
+        } else {
+          let err = `Ошибка ${res.status}`;
+          try {
+            const t = await res.text();
+            try {
+              const j = JSON.parse(t);
+              err = typeof j === 'string' ? j : (j.message || j.error || t);
+            } catch {
+              err = t || err;
+            }
+          } catch {}
+          toast(err, true);
+        }
+      } catch {
+        toast('Не удалось загрузить аватар', true);
+      }
+    });
+  </script>
+</body>
+</html>
