@@ -14,6 +14,7 @@ FROM alpine:latest
 WORKDIR /bubble
 
 COPY --from=builder /bubble/bubble .
+COPY --from=builder /bubble/pages ./pages
 
 EXPOSE 443
 

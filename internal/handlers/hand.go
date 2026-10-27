@@ -6,6 +6,7 @@ import (
 	"bubble/internal/ipblocker"
 	"bubble/internal/messenger"
 	"bubble/internal/users"
+	"sync"
 	"time"
 )
 
@@ -17,8 +18,16 @@ type Handler struct {
 	Blocker            ipblocker.Blocker
 }
 
+type PagesHandler struct {
+	homeHTMLPage  string
+	authHTMLPage  string
+	chatsHTMLPage string
+	sync.Mutex
+}
+
 type TLSHandler struct {
 	Handlers                *Handler
+	PagesHandlers           *PagesHandler
 	Auth                    users.Auth
 	Blocker                 ipblocker.Blocker
 	UsersUsedRequestsNonces map[string]string
@@ -53,11 +62,15 @@ func NewHand() (*TLSHandler, error) {
 			MessengerService:   messengerService,
 			FilesService:       filesService,
 			AudioDialogService: audioDialogService,
+			Blocker:            blocker,
 		},
+		PagesHandlers:           &PagesHandler{},
 		Blocker:                 blocker,
 		Auth:                    usersService,
 		UsersUsedRequestsNonces: make(map[string]string),
 	}
+
+	router.PagesHandlers.readHTMLPages()
 
 	return router, nil
 }
