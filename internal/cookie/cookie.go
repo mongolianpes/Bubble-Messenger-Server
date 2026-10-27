@@ -13,12 +13,12 @@ const (
 	SessionID = "session_id"
 )
 
-func Set(c echo.Context, name, value string) {
+func Set(c echo.Context, name, value string, useHTTPOnly bool) {
 	cookie := &http.Cookie{
 		Name:     name,
 		Value:    value,
 		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
+		HttpOnly: useHTTPOnly,
 		Path:     "/",
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
